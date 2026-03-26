@@ -3,7 +3,7 @@ import { endQuiz, assertOwnsQuiz, getEmailFromAuthorization, save } from '@/app/
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { quizid: string } }
+  { params }: { params: Promise<{ quizid: string }> }
 ) {
   try {
     const authHeader = request.headers.get('Authorization');
@@ -11,8 +11,9 @@ export async function POST(
       return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, params.quizid);
-    await endQuiz(params.quizid);
+    const { quizid: quizId } = await params;
+    await assertOwnsQuiz(email, quizId);
+    await endQuiz(quizId);
     await save();
     return NextResponse.json({});
   } catch (error: unknown) {

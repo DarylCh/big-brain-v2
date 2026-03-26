@@ -3,16 +3,17 @@ import { getQuiz, updateQuiz, removeQuiz, assertOwnsQuiz, getEmailFromAuthorizat
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { quizid: string } }
+  { params }: { params: Promise<{ quizid: string }> }
 ) {
   try {
     const authHeader = request.headers.get('Authorization');
+    const { quizid: quizId } = await params;
     if (!authHeader) {
       return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, params.quizid);
-    const quiz = await getQuiz(params.quizid);
+    await assertOwnsQuiz(email, quizId);
+    const quiz = await getQuiz(quizId);
     return NextResponse.json(quiz);
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {
@@ -24,18 +25,19 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { quizid: string } }
+  { params }: { params: Promise<{ quizid: string }> }
 ) {
   try {
     const authHeader = request.headers.get('Authorization');
+    const { quizid: quizId } = await params;
     if (!authHeader) {
       return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, params.quizid);
+    await assertOwnsQuiz(email, quizId);
     
     const { questions, name, thumbnail } = await request.json();
-    await updateQuiz(params.quizid, questions, name, thumbnail);
+    await updateQuiz(quizId, questions, name, thumbnail);
     await save();
     return NextResponse.json({});
   } catch (error: unknown) {
@@ -48,16 +50,17 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { quizid: string } }
+  { params }: { params: Promise<{ quizid: string }> }
 ) {
   try {
     const authHeader = request.headers.get('Authorization');
+    const { quizid: quizId } = await params;
     if (!authHeader) {
       return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, params.quizid);
-    await removeQuiz(params.quizid);
+    await assertOwnsQuiz(email, quizId);
+    await removeQuiz(quizId);
     await save();
     return NextResponse.json({});
   } catch (error: unknown) {

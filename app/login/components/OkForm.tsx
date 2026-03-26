@@ -49,7 +49,7 @@ const LoginForm = () => {
   // by calling the backend
   const logFetch = async () => {
     console.log(email, password);
-    const req = await fetch('http://localhost:5005/admin/auth/login', {
+    const req = await fetch('/api/admin/auth/login', {
       method: 'POST',
       headers: {
         'Content-type': 'application/json',

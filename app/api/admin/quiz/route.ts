@@ -4,6 +4,7 @@ import { getQuizzesFromAdmin, addQuiz, getEmailFromAuthorization, save } from '@
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
+    console.log('authHeader: ', authHeader);
     if (!authHeader) {
       return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
     }
@@ -11,7 +12,8 @@ export async function GET(request: NextRequest) {
     const quizzes = await getQuizzesFromAdmin(email);
     return NextResponse.json({ quizzes });
   } catch (error: unknown) {
-    if (error.name === 'AccessError') {
+    console.error('Error in GET /api/admin/quiz: ', error);
+    if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
@@ -30,10 +32,11 @@ export async function POST(request: NextRequest) {
     await save();
     return NextResponse.json({ quizId });
   } catch (error: unknown) {
-    if (error.name === 'InputError') {
+    console.error('Error in POST /api/admin/quiz: ', error);
+    if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    if (error.name === 'AccessError') {
+    if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });

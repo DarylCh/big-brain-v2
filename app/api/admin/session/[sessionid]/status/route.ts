@@ -3,7 +3,7 @@ import { sessionStatus, assertOwnsSession, getEmailFromAuthorization } from '@/a
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sessionid: string } }
+  { params }: { params: Promise<{ sessionid: string }> }
 ) {
   try {
     const authHeader = request.headers.get('Authorization');
@@ -11,8 +11,9 @@ export async function GET(
       return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsSession(email, params.sessionid);
-    const results = await sessionStatus(params.sessionid);
+    const { sessionid: sessionId } = await params;
+    await assertOwnsSession(email, sessionId);
+    const results = sessionStatus(sessionId);
     return NextResponse.json({ results });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {

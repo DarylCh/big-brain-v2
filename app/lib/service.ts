@@ -8,7 +8,16 @@ import {
   quizQuestionGetCorrectAnswers,
   quizQuestionGetDuration,
 } from './custom';
-import { Admins, PlayerAnswer, Question, Quiz, Quizzes, Session, Sessions, SessionTimeouts } from './types';
+import {
+  Admins,
+  PlayerAnswer,
+  Question,
+  Quiz,
+  Quizzes,
+  Session,
+  Sessions,
+  SessionTimeouts,
+} from './types';
 
 const lock = new AsyncLock();
 
@@ -46,7 +55,8 @@ const update = (
           )
         );
         resolve();
-      } catch {
+      } catch (error) {
+        console.log('ERROR: Failed to write to database', error);
         reject(new Error('Writing to database failed'));
       }
     });
@@ -61,7 +71,8 @@ export const reset = () => {
 };
 
 try {
-  const data = JSON.parse(JSON.stringify(fs.readFileSync(DATABASE_FILE)));
+  const data = JSON.parse(fs.readFileSync(DATABASE_FILE, 'utf-8'));
+  console.log('Database found, loading data: ', data);
   admins = data.admins;
   quizzes = data.quizzes;
   sessions = data.sessions;
@@ -78,7 +89,9 @@ const newSessionId = () => generateId(Object.keys(sessions), 999999);
 const newQuizId = () => generateId(Object.keys(quizzes));
 const newPlayerId = () =>
   generateId(
-    Object.keys(sessions).map((s) => Object.keys(sessions[s].players)).flat()
+    Object.keys(sessions)
+      .map((s) => Object.keys(sessions[s].players))
+      .flat()
   );
 
 const userLock = (
@@ -88,7 +101,10 @@ const userLock = (
   ) => unknown
 ) =>
   new Promise((resolve, reject) => {
-    lock.acquire('userAuthLock', () => callback(resolve, reject));
+    lock.acquire('userAuthLock', async () => {
+      await callback(resolve, reject);
+      await save();
+    });
   });
 
 const quizLock = (
@@ -98,7 +114,10 @@ const quizLock = (
   ) => unknown
 ) =>
   new Promise((resolve, reject) => {
-    lock.acquire('quizMutateLock', () => callback(resolve, reject));
+    lock.acquire('quizMutateLock', async () => {
+      await callback(resolve, reject);
+      await save();
+    });
   });
 
 const sessionLock = (
@@ -108,7 +127,10 @@ const sessionLock = (
   ) => unknown
 ) =>
   new Promise((resolve, reject) => {
-    lock.acquire('sessionMutateLock', () => callback(resolve, reject));
+    lock.acquire('sessionMutateLock', async () => {
+      await callback(resolve, reject);
+      await save();
+    });
   });
 
 const copy = (x: unknown) => JSON.parse(JSON.stringify(x));
@@ -121,7 +143,8 @@ const generateId = (currentList: string[], max = 999999999) => {
   while (currentList.includes(R.toString())) {
     R = randNum(max);
   }
-  return R.toString(max);
+  // TODO: investigate error throws
+  return R.toString();
 };
 
 /***************************************************************
@@ -131,12 +154,14 @@ const generateId = (currentList: string[], max = 999999999) => {
 export const getEmailFromAuthorization = (authorization: string) => {
   try {
     const token = authorization.replace('Bearer ', '');
+    console.log('Token extracted: ', token);
     const { email } = jwt.verify(token, JWT_SECRET) as { email: string };
     if (!(email in admins)) {
-      throw new AccessError('Invalid Token');
+      throw new AccessError('Email not found in admins list');
     }
     return email;
-  } catch {
+  } catch (error: unknown) {
+    console.error('Error in getEmailFromAuthorization: ', error);
     throw new AccessError('Invalid token');
   }
 };
@@ -220,6 +245,7 @@ export const addQuiz = (name: string, email: string) =>
     } else {
       const newId = newQuizId();
       quizzes[newId] = newQuizPayload(name, email);
+      console.log('quzzies after addition: ', quizzes);
       resolve(newId);
     }
   });
@@ -233,7 +259,12 @@ export const getQuiz = (quizId: string) =>
     });
   });
 
-export const updateQuiz = (quizId: string, questions?: Question[], name?: string, thumbnail?: string) =>
+export const updateQuiz = (
+  quizId: string,
+  questions?: Question[],
+  name?: string,
+  thumbnail?: string
+) =>
   quizLock((resolve) => {
     if (questions) {
       quizzes[quizId].questions = questions;
@@ -269,7 +300,7 @@ export const advanceQuiz = (quizId: string) =>
     const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
     if (!sessionObject) {
       return reject(new InputError('Quiz has no active session'));
-    };
+    }
     const { id, session } = sessionObject;
     if (!session.active) {
       reject(new InputError('Cannot advance a quiz that is not active'));
@@ -314,7 +345,9 @@ const quizHasActiveSession = (quizId: string) =>
     (s) => sessions[s].quizId === quizId && sessions[s].active
   ).length > 0;
 
-const getActiveSessionFromQuizIdThrow = (quizId: string): {id: string, session: Session} | null => {
+const getActiveSessionFromQuizIdThrow = (
+  quizId: string
+): { id: string; session: Session } | null => {
   if (!quizHasActiveSession(quizId)) {
     throw new InputError('Quiz has no active session');
   }

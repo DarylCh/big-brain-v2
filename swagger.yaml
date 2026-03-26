@@ -1,0 +1,548 @@
+openapi: 3.0.0
+info:
+  title: BigBrain API
+  version: 1.0.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/admin/auth/register:
+    post:
+      summary: Register a new admin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Invalid input (e.g. email already registered)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/auth/login:
+    post:
+      summary: Log in as admin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/auth/logout:
+    post:
+      summary: Log out admin
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz:
+    get:
+      summary: Get all quizzes for the authenticated admin
+      responses:
+        '200':
+          description: List of quizzes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quizzes:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new quiz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Quiz created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quizId:
+                    type: string
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz/{quizId}:
+    parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a specific quiz
+      responses:
+        '200':
+          description: Quiz data
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a quiz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                thumbnail:
+                  type: string
+                questions:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Quiz updated
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a quiz
+      responses:
+        '200':
+          description: Quiz deleted
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz/{quizId}/start:
+    parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Start a quiz session
+      responses:
+        '200':
+          description: Session started
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Quiz already has active session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz/{quizId}/advance:
+    parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Advance quiz to next question
+      responses:
+        '200':
+          description: Advanced to next stage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stage:
+                    type: integer
+        '400':
+          description: Invalid state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz/{quizId}/end:
+    parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: End a quiz session
+      responses:
+        '200':
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: No active session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/session/{sessionId}/status:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get session status
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: object
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/session/{sessionId}/results:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get session results (after session ends)
+      responses:
+        '200':
+          description: Session results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+        '400':
+          description: Session still active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/play/join/{sessionId}:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Join a game session as a player
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  playerId:
+                    type: integer
+        '400':
+          description: Invalid input or session already started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/play/{playerId}/status:
+    parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Check if the game has started
+      security: []
+      responses:
+        '200':
+          description: Game start status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  started:
+                    type: boolean
+
+  /api/play/{playerId}/question:
+    parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get the current question
+      security: []
+      responses:
+        '200':
+          description: Current question
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: object
+        '400':
+          description: Session not started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/play/{playerId}/answer:
+    parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get correct answers for current question (after time expires)
+      security: []
+      responses:
+        '200':
+          description: Correct answer IDs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answerIds:
+                    type: array
+                    items:
+                      type: integer
+        '400':
+          description: Answers not yet available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Submit answers for current question
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answerIds]
+              properties:
+                answerIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Answers submitted
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Invalid submission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/play/{playerId}/results:
+    parameters:
+      - name: playerId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get player results after session ends
+      security: []
+      responses:
+        '200':
+          description: Player answers/results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '400':
+          description: Session still active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

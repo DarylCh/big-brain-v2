@@ -20,7 +20,7 @@ interface Game {
 }
 
 export const fetchGameInfo = async (quizId: string, token: string) => {
-  const req = await fetch(`http://localhost:5005/admin/quiz/${quizId}`, {
+  const req = await fetch(`/api/admin/quiz/${quizId}`, {
     method: 'GET',
     headers: {
       'Content-type': 'application/json',
@@ -121,7 +121,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
     };
 
     const fetchGames = async () => {
-      const req = await fetch('http://localhost:5005/admin/quiz', {
+      const req = await fetch('/api/admin/quiz', {
         method: 'GET',
         headers: {
           'Content-type': 'application/json',
@@ -142,16 +142,13 @@ const GameFeed = ({ click }: { click: boolean }) => {
       return;
     }
 
-    const req = await fetch(
-      `http://localhost:5005/admin/quiz/${quizId}/start`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json',
-          Authorization: token ?? '',
-        },
-      }
-    );
+    const req = await fetch(`/api/admin/quiz/${quizId}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json',
+        Authorization: token ?? '',
+      },
+    });
     if (req.ok) {
       // console.log(quizId);
       const info = await fetchGameInfo(quizId, token);
@@ -167,16 +164,13 @@ const GameFeed = ({ click }: { click: boolean }) => {
   // This function attemps to advance a game by
   // calling the backend
   const advanceGame = async (quizId: string) => {
-    const req = await fetch(
-      `http://localhost:5005/admin/quiz/${quizId}/advance`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json',
-          Authorization: token ?? '',
-        },
-      }
-    );
+    const req = await fetch(`/api/admin/quiz/${quizId}/advance`, {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json',
+        Authorization: token ?? '',
+      },
+    });
     if (req.ok) {
       setDescTitle('Game Advanced!');
       setDesc('Game has successfully moved forward one question.');
@@ -190,7 +184,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
   // This function attempts to stop a game by
   // calling the backend
   const stopGame = async (quizId: string) => {
-    await fetch(`http://localhost:5005/admin/quiz/${quizId}/end`, {
+    await fetch(`/api/admin/quiz/${quizId}/end`, {
       method: 'POST',
       headers: {
         'Content-type': 'application/json',
@@ -203,7 +197,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
   // This function attempts to delete a game by
   // calling the backend
   const deleteGame = async (quizId: string) => {
-    const req = await fetch(`http://localhost:5005/admin/quiz/${quizId}`, {
+    const req = await fetch(`/api/admin/quiz/${quizId}`, {
       method: 'DELETE',
       headers: {
         'Content-type': 'application/json',
