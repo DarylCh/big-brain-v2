@@ -1,7 +1,7 @@
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import AsyncLock from 'async-lock';
-import { InputError, AccessError } from './error';
+import { InputError, AccessError } from './errors';
 
 import {
   quizQuestionPublicReturn,
@@ -46,7 +46,7 @@ const update = (
           )
         );
         resolve();
-      } catch { 
+      } catch {
         reject(new Error('Writing to database failed'));
       }
     });

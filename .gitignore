@@ -59,3 +59,5 @@ next-env.d.ts
 
 # Ignore .DS_Store everywhere
 **/.DS_Store
+**/database.json
+database.json

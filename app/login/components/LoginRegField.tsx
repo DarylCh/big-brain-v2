@@ -1,9 +1,8 @@
-const LoginFieldStyle = {
-  margin: '0px 0 30px 0',
-};
-
-const LoginFieldStyleBottom = {
-  margin: '0px 0 15px 0',
+const LoginFieldStyle: React.CSSProperties = {
+  marginBottom: '15px',
+  backgroundColor: 'white',
+  borderRadius: '5px',
+  padding: '5px 10px',
 };
 
 // This component is an input field for the login/register pages
@@ -50,7 +49,7 @@ export const LRFieldBottom = ({
   aria: string;
 }) => {
   return (
-    <div style={LoginFieldStyleBottom}>
+    <div style={LoginFieldStyle}>
       <p>{text}:</p>
       <input
         id={id}
