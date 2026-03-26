@@ -1,8 +1,19 @@
-export default function LoginPage() {
+import LoginForm from './components/OkForm';
+import NavBar from '../components/NavBar';
+
+export function Login() {
   return (
-    <div>
-      <h1>Login</h1>
-      {/* Import Login component here once migrated */}
-    </div>
-  )
+    <>
+      <header>
+        <nav>
+          <NavBar></NavBar>
+        </nav>
+      </header>
+      <main>
+        <LoginForm />
+      </main>
+    </>
+  );
 }
+
+export default Login;
