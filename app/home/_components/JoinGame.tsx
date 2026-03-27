@@ -1,13 +1,18 @@
 'use client';
 import { useState } from 'react';
 import { GroupDiv } from './Dashboard';
-import Title from '@/app/components/Title';
 import { FormControl, TextField } from '@mui/material';
+import Title from '@/app/components/Title';
 import FullButton from '@/app/components/FullButton';
 
-// This component is used to create a new game on the
+const formStyle = {
+  margin: '20px auto 10px auto',
+  width: '100%',
+};
+
+// This component is used to join an existing game on the
 // game dashboard
-const CreateGame = ({
+const JoinGame = ({
   activatePopup,
   activateClicked,
   setDesc,
@@ -20,33 +25,35 @@ const CreateGame = ({
   changed: boolean;
   setChanged: (changed: boolean) => void;
 }) => {
-  const [name, setName] = useState('');
-  const [createGameLoading, setCreateGameLoading] = useState(false);
+  const [gameCode, setGameCode] = useState('');
+  const [joinGameLoading, setJoinGameLoading] = useState(false);
 
   // This function checks that the data is valid
   // then changes sends it to the backend to
   // create a new game
   const submit = async () => {
     try {
-      setCreateGameLoading(true);
+      setJoinGameLoading(true);
       const storedToken = localStorage.getItem('token');
-      if (name === '') {
-        setDesc('Please enter a name');
+      if (gameCode === '') {
+        setDesc('Please enter a game code');
         activatePopup();
         return;
       }
 
       activateClicked();
-      const req = await fetch('/api/admin/quiz/new', {
+
+      const req = await fetch('/api/admin/quiz', {
         method: 'POST',
         headers: {
           'Content-type': 'application/json',
           Authorization: storedToken ?? '',
         },
         body: JSON.stringify({
-          name: name,
+          gameCode: gameCode,
         }),
       });
+
       const response = await req.json();
       if (!req.ok) {
         setDesc(response.error);
@@ -56,36 +63,38 @@ const CreateGame = ({
         setChanged(!changed);
       }
     } finally {
-      setCreateGameLoading(false);
+      setGameCode('');
+      setJoinGameLoading(false);
     }
   };
 
   return (
     <GroupDiv>
-      <Title>Create a game</Title>
+      <Title>Got a game code?</Title>
       <FormControl
-        aria-label="create-game-form"
-        style={{ width: '100%', gap: '20px', marginTop: '20px' }}
+        aria-label="join-game-form"
+        style={{ width: '100%', gap: '10px' }}
       >
         <TextField
           id="game-title"
-          label="Name"
-          placeholder="Enter game name..."
-          aria-label="Edit game name field"
-          onChange={(e) => setName(e.target.value)}
+          label="Code"
+          placeholder="Enter your game code"
+          aria-label="Game code field"
+          style={formStyle}
+          onChange={(e) => setGameCode(e.target.value)}
         />
         <FullButton
-          id="create-game-button"
-          aria-label="create-new-game-button"
+          id="join-game-button"
+          aria-label="Join game button"
           onClick={submit}
-          disabled={name.length === 0 || createGameLoading}
-          loading={createGameLoading}
+          disabled={gameCode.length === 0 || joinGameLoading}
+          loading={joinGameLoading}
         >
-          Create Game
+          Join
         </FullButton>
       </FormControl>
     </GroupDiv>
   );
 };
 
-export default CreateGame;
+export default JoinGame;

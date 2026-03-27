@@ -1,32 +1,19 @@
-import { Button } from '@mui/material';
+import { Button, ButtonProps } from '@mui/material';
 
 const buttonStyles = {
-  marginTop: '10px',
   width: '100%',
 };
 
 // This component is a button that is used
 // by other components
-const FullButton = ({
-  id,
-  text,
-  onClick,
-  aria,
-}: {
-  id: string;
-  text: string;
-  onClick: () => void;
-  aria: string;
-}) => {
+const FullButton = ({ style, children, ...props }: ButtonProps) => {
   return (
     <Button
-      id={id}
-      style={buttonStyles}
       variant="contained"
-      onClick={onClick}
-      aria-label={aria}
+      style={{ ...buttonStyles, ...style }}
+      {...props}
     >
-      {text}
+      {children}
     </Button>
   );
 };

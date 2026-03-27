@@ -90,10 +90,11 @@ const LoginForm = () => {
         ></LRFieldBottom>
         <FullButton
           id="login-button"
-          text="Log In"
-          aria="login button"
+          aria-label="login button"
           onClick={logFetch}
-        ></FullButton>
+        >
+          Log In
+        </FullButton>
         <CentredTextDiv>
           <p>
             Don&apos;t have an account?{' '}

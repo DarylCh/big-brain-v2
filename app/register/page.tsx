@@ -75,10 +75,11 @@ const RegisterPage = () => {
           ></LRFieldBottom>
           <FullButton
             id="Submit"
-            text="Submit"
-            aria="Submit Button"
+            aria-label="Submit Button"
             onClick={regFetch}
-          ></FullButton>
+          >
+            Submit
+          </FullButton>
           <CentredTextDiv>
             <p>
               Have an account already?{' '}

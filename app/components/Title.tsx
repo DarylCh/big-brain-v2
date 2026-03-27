@@ -1,15 +1,22 @@
 import React from 'react';
 
-const TitleStyle = {
-  margin: '5px 0 25px 0',
+const TitleStyle: React.CSSProperties = {
   color: '#FF5003',
-}
+  fontSize: '28px',
+  fontWeight: 'semi-bold',
+};
 
 // This component is used by other components as a heading title
-const Title: React.FC<{ name: string }> = ({ name }) => {
+const Title = ({
+  style,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) => {
   return (
-    <h2 style={TitleStyle}>{name}</h2>
-  )
-}
+    <h2 style={{ ...TitleStyle, ...style }} {...props}>
+      {children}
+    </h2>
+  );
+};
 
 export default Title;

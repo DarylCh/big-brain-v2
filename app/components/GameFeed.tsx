@@ -248,7 +248,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
 
   return (
     <div>
-      <Title name="Available Games"></Title>
+      <Title>Your Hosted Games</Title>
       {popup && (
         <GamePopup
           title={descTitle}

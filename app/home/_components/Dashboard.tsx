@@ -4,10 +4,10 @@ import { styled } from '@mui/material/styles';
 import GameFeed from '@/app/components/GameFeed';
 import ErrorPopup from '@/app/components/ErrorPopup';
 import CreateGame from './CreateGame';
+import JoinGame from './JoinGame';
 
 export const GroupDiv = styled('div')`
   background-color: #fff;
-  width: 90%;
   max-width: 700px;
   margin: 20px auto 30px auto;
   padding: 23px;
@@ -54,6 +54,13 @@ const Dashboard = () => {
           toggle={() => activatePopup()}
         ></ErrorPopup>
       )}
+      <JoinGame
+        activatePopup={() => activatePopup()}
+        activateClicked={() => changeClicked()}
+        changed={changed}
+        setChanged={setChanged}
+        setDesc={setDesc}
+      />
       <CreateGame
         activatePopup={() => activatePopup()}
         activateClicked={() => changeClicked()}
