@@ -68,9 +68,7 @@ const Dashboard = () => {
         setChanged={setChanged}
         setDesc={setDesc}
       />
-      <GroupDiv>
-        <GameFeed click={isClicked} />
-      </GroupDiv>
+      <GameFeed click={isClicked} />
     </>
   );
 };

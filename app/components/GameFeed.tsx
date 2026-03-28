@@ -8,6 +8,13 @@ import Title from './Title';
 import { styled } from '@mui/material/styles';
 import ErrorPopup from './ErrorPopup';
 import { useRouter } from 'next/navigation';
+import { GroupDiv } from '../home/_components/Dashboard';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
+import ImageIcon from '@mui/icons-material/Image';
+import Typography from '@mui/material/Typography';
 
 interface Game {
   id: string;
@@ -247,8 +254,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
   };
 
   return (
-    <div>
-      <Title>Your Hosted Games</Title>
+    <GroupDiv>
       {popup && (
         <GamePopup
           title={descTitle}
@@ -261,6 +267,58 @@ const GameFeed = ({ click }: { click: boolean }) => {
       {popup2 && (
         <ErrorPopup title={descTitle} desc={desc} toggle={activatePopup2} />
       )}
+      <div
+        style={{
+          margin: '20px 0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Title>Your Games</Title>
+        <Button variant="outlined">
+          <Typography>Create</Typography>
+        </Button>
+      </div>
+      <List style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {games.map((game) => {
+          return (
+            <ListItem
+              key={game.id}
+              sx={{
+                padding: '0 20px',
+                height: '80px',
+                backgroundColor: '#fafafa',
+                borderRadius: '12px',
+                '&:hover': { backgroundColor: '#f0f0f0', cursor: 'pointer' },
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <ListItemAvatar>
+                  <Avatar>
+                    <ImageIcon />
+                  </Avatar>
+                </ListItemAvatar>
+                <div>
+                  <Typography variant="h6">{game.name}</Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {`Questions: ${game.questions.length}`}
+                  </Typography>
+                </div>
+              </div>
+              <div>
+                <IconButton>
+                  <EditIcon />
+                </IconButton>
+              </div>
+              {/* </Box> */}
+            </ListItem>
+          );
+        })}
+      </List>
       <div id="games-container">
         {games.map((game) => {
           return (
@@ -333,7 +391,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
           );
         })}
       </div>
-    </div>
+    </GroupDiv>
   );
 };
 

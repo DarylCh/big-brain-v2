@@ -37,7 +37,7 @@ const CreateGame = ({
       }
 
       activateClicked();
-      const req = await fetch('/api/admin/quiz/new', {
+      const req = await fetch('/api/admin/quiz', {
         method: 'POST',
         headers: {
           'Content-type': 'application/json',
