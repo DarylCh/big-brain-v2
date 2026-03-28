@@ -15,18 +15,15 @@ import Avatar from '@mui/material/Avatar';
 import ImageIcon from '@mui/icons-material/Image';
 import Typography from '@mui/material/Typography';
 import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
+import { Quiz } from '../lib/types';
 
-interface Game {
+interface Game extends Quiz {
   id: string;
-  name: string;
-  active: null | number | string;
-  thumbnail: string | null;
   number: number;
   totalTime: number;
-  questions: string[];
 }
 
-export const fetchGameInfo = async (quizId: string, token: string) => {
+export const fetchGameInfo = async (quizId: string, token: string): Promise<Quiz> => {
   const req = await fetch(`/api/admin/quiz/${quizId}`, {
     method: 'GET',
     headers: {
@@ -34,7 +31,8 @@ export const fetchGameInfo = async (quizId: string, token: string) => {
       Authorization: token,
     },
   });
-  const gameInfo = await req.json();
+
+  const gameInfo: Quiz = await req.json();
   return gameInfo;
 };
 
@@ -254,7 +252,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
   };
 
   return (
-    <GroupDiv>
+    <>
       {popup && (
         <GamePopup
           title={descTitle}
@@ -267,133 +265,135 @@ const GameFeed = ({ click }: { click: boolean }) => {
       {popup2 && (
         <ErrorPopup title={descTitle} desc={desc} toggle={activatePopup2} />
       )}
-      <div
-        style={{
-          margin: '20px 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Title>Your Games</Title>
-        <Button variant="outlined">
-          <Typography>Create</Typography>
-        </Button>
-      </div>
-      <List style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {games.map((game) => {
-          return (
-            <ListItem
-              key={game.id}
-              sx={{
-                padding: '0 20px',
-                height: '80px',
-                backgroundColor: '#fafafa',
-                borderRadius: '12px',
-                '&:hover': { backgroundColor: '#f0f0f0', cursor: 'pointer' },
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-              onClick={() => navEdit(game.id)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <ListItemAvatar>
-                  <Avatar>
-                    <ImageIcon />
-                  </Avatar>
-                </ListItemAvatar>
+      <GroupDiv>
+        <div
+          style={{
+            margin: '20px 0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Title>Your Games</Title>
+          <Button variant="outlined">
+            <Typography>Create</Typography>
+          </Button>
+        </div>
+        <List style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {games.map((game) => {
+            return (
+              <ListItem
+                key={game.id}
+                sx={{
+                  padding: '0 20px',
+                  height: '80px',
+                  backgroundColor: '#fafafa',
+                  borderRadius: '12px',
+                  '&:hover': { backgroundColor: '#f0f0f0', cursor: 'pointer' },
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+                onClick={() => navEdit(game.id)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <ListItemAvatar>
+                    <Avatar>
+                      <ImageIcon />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <div>
+                    <Typography variant="h6">{game.name}</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {`Questions: ${game.questions.length}`}
+                    </Typography>
+                  </div>
+                </div>
                 <div>
-                  <Typography variant="h6">{game.name}</Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {`Questions: ${game.questions.length}`}
-                  </Typography>
+                  <IconButton sx={{ padding: '5px' }}>
+                    <PlayCircleFilledIcon sx={{ fontSize: 35 }} />
+                  </IconButton>
+                </div>
+                {/* </Box> */}
+              </ListItem>
+            );
+          })}
+        </List>
+        <div id="games-container">
+          {games.map((game) => {
+            return (
+              <div key={game.id} className="game" style={eleStyle}>
+                <div style={titleDiv}>
+                  <h3 style={gameTitleStyle} className="game-name">
+                    {game.name}
+                  </h3>
+                  {game.active === null && (
+                    <IconButton
+                      onClick={() => navEdit(game.id)}
+                      aria-label="Edit Button"
+                      sx={{ padding: '6px' }}
+                    >
+                      <PlayCircleFilledIcon sx={{ fontSize: 40 }} />
+                    </IconButton>
+                  )}
+                </div>
+                {game.thumbnail !== null && (
+                  <Thumbnail
+                    alt="Game Thumbnail"
+                    src={game.thumbnail}
+                  ></Thumbnail>
+                )}
+                <p style={textStyle}>Questions: {game.number}</p>
+                <p>Total game time: {game.totalTime} seconds</p>
+                <div style={buttonDiv}>
+                  {game.active === null && (
+                    <Button
+                      variant="contained"
+                      aria-label="start game button"
+                      className="start-button"
+                      onClick={() => startGame(game.id)}
+                    >
+                      Start
+                    </Button>
+                  )}
+                  {game.active === null && (
+                    <Button
+                      variant="contained"
+                      aria-label="delete game button"
+                      className="delete-button"
+                      color="error"
+                      onClick={() => deleteGame(game.id)}
+                    >
+                      Delete{' '}
+                    </Button>
+                  )}
+                  {game.active !== null && (
+                    <Button
+                      variant="contained"
+                      aria-label="advance game button"
+                      onClick={() => advanceGame(game.id)}
+                    >
+                      Advance
+                    </Button>
+                  )}
+                  {game.active !== null && (
+                    <Button
+                      variant="contained"
+                      aria-label="stop game button"
+                      className="stop-button"
+                      color="error"
+                      onClick={() => stopGame(game.id)}
+                    >
+                      Stop Game
+                    </Button>
+                  )}
                 </div>
               </div>
-              <div>
-                <IconButton sx={{ padding: '5px' }}>
-                  <PlayCircleFilledIcon sx={{ fontSize: 35 }} />
-                </IconButton>
-              </div>
-              {/* </Box> */}
-            </ListItem>
-          );
-        })}
-      </List>
-      <div id="games-container">
-        {games.map((game) => {
-          return (
-            <div key={game.id} className="game" style={eleStyle}>
-              <div style={titleDiv}>
-                <h3 style={gameTitleStyle} className="game-name">
-                  {game.name}
-                </h3>
-                {game.active === null && (
-                  <IconButton
-                    onClick={() => navEdit(game.id)}
-                    aria-label="Edit Button"
-                    sx={{ padding: '6px' }}
-                  >
-                    <PlayCircleFilledIcon sx={{ fontSize: 40 }} />
-                  </IconButton>
-                )}
-              </div>
-              {game.thumbnail !== null && (
-                <Thumbnail
-                  alt="Game Thumbnail"
-                  src={game.thumbnail}
-                ></Thumbnail>
-              )}
-              <p style={textStyle}>Questions: {game.number}</p>
-              <p>Total game time: {game.totalTime} seconds</p>
-              <div style={buttonDiv}>
-                {game.active === null && (
-                  <Button
-                    variant="contained"
-                    aria-label="start game button"
-                    className="start-button"
-                    onClick={() => startGame(game.id)}
-                  >
-                    Start
-                  </Button>
-                )}
-                {game.active === null && (
-                  <Button
-                    variant="contained"
-                    aria-label="delete game button"
-                    className="delete-button"
-                    color="error"
-                    onClick={() => deleteGame(game.id)}
-                  >
-                    Delete{' '}
-                  </Button>
-                )}
-                {game.active !== null && (
-                  <Button
-                    variant="contained"
-                    aria-label="advance game button"
-                    onClick={() => advanceGame(game.id)}
-                  >
-                    Advance
-                  </Button>
-                )}
-                {game.active !== null && (
-                  <Button
-                    variant="contained"
-                    aria-label="stop game button"
-                    className="stop-button"
-                    color="error"
-                    onClick={() => stopGame(game.id)}
-                  >
-                    Stop Game
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </GroupDiv>
+            );
+          })}
+        </div>
+      </GroupDiv>
+    </>
   );
 };
 
