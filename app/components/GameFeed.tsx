@@ -3,7 +3,6 @@ import { CSSProperties, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { GamePopup } from './GameStartPopup';
 import { Button, IconButton } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import Title from './Title';
 import { styled } from '@mui/material/styles';
 import ErrorPopup from './ErrorPopup';
@@ -15,6 +14,7 @@ import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import ImageIcon from '@mui/icons-material/Image';
 import Typography from '@mui/material/Typography';
+import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 
 interface Game {
   id: string;
@@ -103,8 +103,8 @@ const GameFeed = ({ click }: { click: boolean }) => {
   };
 
   // This function navigates to the editGame page
-  const navEdit = (num: string) => {
-    router.push(`/edit/game/${num}`);
+  const navEdit = (gameId: string) => {
+    router.push(`/game/${gameId}`);
   };
 
   // This useEffect calls for games to be fetched
@@ -295,6 +295,7 @@ const GameFeed = ({ click }: { click: boolean }) => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}
+              onClick={() => navEdit(game.id)}
             >
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <ListItemAvatar>
@@ -310,8 +311,8 @@ const GameFeed = ({ click }: { click: boolean }) => {
                 </div>
               </div>
               <div>
-                <IconButton>
-                  <EditIcon />
+                <IconButton sx={{ padding: '5px' }}>
+                  <PlayCircleFilledIcon sx={{ fontSize: 35 }} />
                 </IconButton>
               </div>
               {/* </Box> */}
@@ -331,8 +332,9 @@ const GameFeed = ({ click }: { click: boolean }) => {
                   <IconButton
                     onClick={() => navEdit(game.id)}
                     aria-label="Edit Button"
+                    sx={{ padding: '6px' }}
                   >
-                    <EditIcon>Edit</EditIcon>
+                    <PlayCircleFilledIcon sx={{ fontSize: 40 }} />
                   </IconButton>
                 )}
               </div>
