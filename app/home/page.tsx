@@ -4,15 +4,17 @@ import { Box } from '@mui/material';
 
 export default function HomePage() {
   return (
-    <Box sx={{ backgroundColor: '#fafafa', minHeight: '100vh' }}>
+    <>
       <header>
         <nav>
           <AdminNavBar />
         </nav>
       </header>
       <main>
-        <Dashboard />
+        <Box sx={{ backgroundColor: '#fafafa', minHeight: '100vh' }}>
+          <Dashboard />
+        </Box>
       </main>
-    </Box>
+    </>
   );
 }

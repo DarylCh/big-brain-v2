@@ -1,5 +1,5 @@
 'use client';
-import { CSSProperties, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { GamePopup } from './GameStartPopup';
 import { Button, IconButton } from '@mui/material';
@@ -23,7 +23,10 @@ interface Game extends Quiz {
   totalTime: number;
 }
 
-export const fetchGameInfo = async (quizId: string, token: string): Promise<Quiz> => {
+export const fetchGameInfo = async (
+  quizId: string,
+  token: string
+): Promise<Quiz> => {
   const req = await fetch(`/api/admin/quiz/${quizId}`, {
     method: 'GET',
     headers: {
@@ -44,7 +47,8 @@ export const Thumbnail = styled('img')`
 // This component is used in the dashboard and generates
 // a feed of all of the games
 const GameFeed = ({ click }: { click: boolean }) => {
-  const token = localStorage.getItem('token');
+  const token =
+    typeof window !== 'undefined' ? (localStorage.getItem('token') ?? '') : '';
   const [games, setGames] = useState<Game[]>([]);
   const [popup, setPopup] = useState(false);
   const [popup2, setPopup2] = useState(false);
@@ -199,58 +203,6 @@ const GameFeed = ({ click }: { click: boolean }) => {
     haltGame(quizId, 'Game Stopped!');
   };
 
-  // This function attempts to delete a game by
-  // calling the backend
-  const deleteGame = async (quizId: string) => {
-    const req = await fetch(`/api/admin/quiz/${quizId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-type': 'application/json',
-        Authorization: token ?? '',
-      },
-    });
-    if (req.ok) {
-      const newGames = [...games];
-      newGames.forEach((game, index) => {
-        if (game.id === quizId) {
-          newGames.splice(index, 1);
-        }
-      });
-      setGames(newGames);
-    }
-  };
-
-  const eleStyle = {
-    backgroundColor: '#fafafa',
-    margin: '20px 10px 20px 10px',
-    img: '80%',
-    padding: '10px',
-    borderRadius: '8px',
-  };
-
-  const buttonDiv = {
-    display: 'flex',
-    justifyContent: 'space-between',
-  };
-
-  const textStyle = {
-    lineHeight: '1.5',
-    marginBottom: '5px',
-    marginTop: '5px',
-  };
-
-  const gameTitleStyle: CSSProperties = {
-    marginBottom: '15px',
-    position: 'relative',
-    top: '7px',
-    color: '#003366',
-  };
-
-  const titleDiv = {
-    display: 'flex',
-    justifyContent: 'space-between',
-  };
-
   return (
     <>
       {popup && (
@@ -265,10 +217,10 @@ const GameFeed = ({ click }: { click: boolean }) => {
       {popup2 && (
         <ErrorPopup title={descTitle} desc={desc} toggle={activatePopup2} />
       )}
-      <GroupDiv>
+      <GroupDiv style={{ marginTop: '8px' }}>
         <div
           style={{
-            margin: '20px 0',
+            margin: '10px 0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -314,84 +266,10 @@ const GameFeed = ({ click }: { click: boolean }) => {
                     <PlayCircleFilledIcon sx={{ fontSize: 35 }} />
                   </IconButton>
                 </div>
-                {/* </Box> */}
               </ListItem>
             );
           })}
         </List>
-        <div id="games-container">
-          {games.map((game) => {
-            return (
-              <div key={game.id} className="game" style={eleStyle}>
-                <div style={titleDiv}>
-                  <h3 style={gameTitleStyle} className="game-name">
-                    {game.name}
-                  </h3>
-                  {game.active === null && (
-                    <IconButton
-                      onClick={() => navEdit(game.id)}
-                      aria-label="Edit Button"
-                      sx={{ padding: '6px' }}
-                    >
-                      <PlayCircleFilledIcon sx={{ fontSize: 40 }} />
-                    </IconButton>
-                  )}
-                </div>
-                {game.thumbnail !== null && (
-                  <Thumbnail
-                    alt="Game Thumbnail"
-                    src={game.thumbnail}
-                  ></Thumbnail>
-                )}
-                <p style={textStyle}>Questions: {game.number}</p>
-                <p>Total game time: {game.totalTime} seconds</p>
-                <div style={buttonDiv}>
-                  {game.active === null && (
-                    <Button
-                      variant="contained"
-                      aria-label="start game button"
-                      className="start-button"
-                      onClick={() => startGame(game.id)}
-                    >
-                      Start
-                    </Button>
-                  )}
-                  {game.active === null && (
-                    <Button
-                      variant="contained"
-                      aria-label="delete game button"
-                      className="delete-button"
-                      color="error"
-                      onClick={() => deleteGame(game.id)}
-                    >
-                      Delete{' '}
-                    </Button>
-                  )}
-                  {game.active !== null && (
-                    <Button
-                      variant="contained"
-                      aria-label="advance game button"
-                      onClick={() => advanceGame(game.id)}
-                    >
-                      Advance
-                    </Button>
-                  )}
-                  {game.active !== null && (
-                    <Button
-                      variant="contained"
-                      aria-label="stop game button"
-                      className="stop-button"
-                      color="error"
-                      onClick={() => stopGame(game.id)}
-                    >
-                      Stop Game
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </GroupDiv>
     </>
   );
