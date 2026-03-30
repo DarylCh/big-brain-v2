@@ -6,7 +6,7 @@ export const navStyle = {
   padding: '5px 20px',
   alignItems: 'center',
   justifyContent: 'space-between',
-  backgroundColor: 'red',
+  backgroundColor: '#FF5003',
   width: '100%',
 };
 

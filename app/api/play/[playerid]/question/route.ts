@@ -3,10 +3,11 @@ import { getQuestion } from '@/app/lib/service';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { playerid: string } }
+  { params }: { params: Promise<{ playerid: string }> }
 ) {
   try {
-    const question = await getQuestion(params.playerid);
+    const { playerid } = await params;
+    const question = await getQuestion(playerid);
     return NextResponse.json({ question });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'InputError') {

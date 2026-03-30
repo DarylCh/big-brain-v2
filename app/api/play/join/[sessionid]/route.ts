@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { playerJoin, save } from '@/app/lib/service';
+import { playerJoin } from '@/app/lib/service';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { sessionid: string } }
+  { params }: { params: Promise<{ sessionid: string }> }
 ) {
   try {
     const { name } = await request.json();
-    const playerId = await playerJoin(name, params.sessionid);
-    await save();
+    const { sessionid } = await params;
+    const playerId = await playerJoin(name, sessionid);
     return NextResponse.json({ playerId });
   } catch (error: unknown) {
+    console.error('Error in player join:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

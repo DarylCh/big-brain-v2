@@ -4,6 +4,7 @@ import { GroupDiv } from './Dashboard';
 import { FormControl, TextField } from '@mui/material';
 import Title from '@/app/components/Title';
 import FullButton from '@/app/components/FullButton';
+import { useRouter } from 'next/navigation';
 
 const formStyle = {
   margin: '20px auto 10px auto',
@@ -27,11 +28,12 @@ const JoinGame = ({
 }) => {
   const [gameCode, setGameCode] = useState('');
   const [joinGameLoading, setJoinGameLoading] = useState(false);
+  const router = useRouter();
 
   // This function checks that the data is valid
   // then changes sends it to the backend to
   // create a new game
-  const submit = async () => {
+  const joinGame = async () => {
     try {
       setJoinGameLoading(true);
       const storedToken = localStorage.getItem('token');
@@ -43,18 +45,26 @@ const JoinGame = ({
 
       activateClicked();
 
-      const req = await fetch('/api/admin/quiz', {
-        method: 'POST',
-        headers: {
-          'Content-type': 'application/json',
-          Authorization: storedToken ?? '',
-        },
-        body: JSON.stringify({
-          gameCode: gameCode,
-        }),
-      });
+      const req = await fetch(
+        `/api/play/join/${encodeURIComponent(gameCode)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+            Authorization: storedToken ?? '',
+          },
+          body: JSON.stringify({
+            name: 'Daryl',
+          }),
+        }
+      );
 
       const response = await req.json();
+      console.log('Join game response: ', response);
+      if (req.ok) {
+        router.push(`/play/${gameCode}`);
+      }
+
       if (!req.ok) {
         setDesc(response.error);
         setDesc(storedToken ?? '');
@@ -86,7 +96,7 @@ const JoinGame = ({
         <FullButton
           id="join-game-button"
           aria-label="Join game button"
-          onClick={submit}
+          onClick={joinGame}
           disabled={gameCode.length === 0 || joinGameLoading}
           loading={joinGameLoading}
         >

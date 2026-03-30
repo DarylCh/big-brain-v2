@@ -3,10 +3,11 @@ import { hasStarted } from '@/app/lib/service';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { playerid: string } }
+  { params }: { params: Promise<{ playerid: string }> }
 ) {
   try {
-    const started = await hasStarted(params.playerid);
+    const { playerid } = await params;
+    const started = await hasStarted(playerid);
     return NextResponse.json({ started });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'InputError') {

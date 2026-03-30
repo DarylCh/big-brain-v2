@@ -42,6 +42,7 @@ const update = (
   new Promise((resolve, reject) => {
     lock.acquire('saveData', () => {
       try {
+        console.log('Saving to database: ', { admins, quizzes, sessions });
         fs.writeFileSync(
           DATABASE_FILE,
           JSON.stringify(
@@ -56,7 +57,7 @@ const update = (
         );
         resolve();
       } catch (error) {
-        console.log('ERROR: Failed to write to database', error);
+        console.error('ERROR: Failed to write to database', error);
         reject(new Error('Writing to database failed'));
       }
     });
@@ -72,7 +73,6 @@ export const reset = () => {
 
 try {
   const data = JSON.parse(fs.readFileSync(DATABASE_FILE, 'utf-8'));
-  console.log('Database found, loading data: ', data);
   admins = data.admins;
   quizzes = data.quizzes;
   sessions = data.sessions;
@@ -94,44 +94,14 @@ const newPlayerId = () =>
       .flat()
   );
 
-const userLock = (
-  callback: (
-    resolve: (value?: unknown) => void,
-    reject: (reason?: unknown) => void
-  ) => unknown
-) =>
-  new Promise((resolve, reject) => {
-    lock.acquire('userAuthLock', async () => {
-      await callback(resolve, reject);
-      await save();
-    });
+const mutateLock = async <T>(callback: () => T | Promise<T>) => {
+  let result: T;
+  await lock.acquire('sessionMutateLock', async () => {
+    result = await callback();
+    await save();
   });
-
-const quizLock = (
-  callback: (
-    resolve: (value?: unknown) => void,
-    reject: (reason?: unknown) => void
-  ) => unknown
-) =>
-  new Promise((resolve, reject) => {
-    lock.acquire('quizMutateLock', async () => {
-      await callback(resolve, reject);
-      await save();
-    });
-  });
-
-const sessionLock = (
-  callback: (
-    resolve: (value?: unknown) => void,
-    reject: (reason?: unknown) => void
-  ) => unknown
-) =>
-  new Promise((resolve, reject) => {
-    lock.acquire('sessionMutateLock', async () => {
-      await callback(resolve, reject);
-      await save();
-    });
-  });
+  return result!;
+};
 
 const copy = (x: unknown) => JSON.parse(JSON.stringify(x));
 const randNum = (max: number) =>
@@ -167,34 +137,32 @@ export const getEmailFromAuthorization = (authorization: string) => {
 };
 
 export const login = (email: string, password: string) =>
-  userLock((resolve, reject) => {
+  mutateLock(() => {
     if (email in admins) {
       if (admins[email].password === password) {
         admins[email].sessionActive = true;
-        resolve(jwt.sign({ email }, JWT_SECRET, { algorithm: 'HS256' }));
+        return jwt.sign({ email }, JWT_SECRET, { algorithm: 'HS256' });
       }
     }
-    reject(new InputError('Invalid username or password'));
+    throw new InputError('Invalid username or password');
   });
 
 export const logout = (email: string) =>
-  userLock((resolve) => {
+  mutateLock(() => {
     admins[email].sessionActive = false;
-    resolve();
   });
 
 export const register = (email: string, password: string, name: string) =>
-  userLock((resolve, reject) => {
+  mutateLock(() => {
     if (email in admins) {
-      reject(new InputError('Email address already registered'));
+      throw new InputError('Email address already registered');
     }
     admins[email] = {
       name,
       password,
       sessionActive: true,
     };
-    const token = jwt.sign({ email }, JWT_SECRET, { algorithm: 'HS256' });
-    resolve(token);
+    return jwt.sign({ email }, JWT_SECRET, { algorithm: 'HS256' });
   });
 
 /***************************************************************
@@ -211,52 +179,48 @@ const newQuizPayload = (name: string, owner: string): Quiz => ({
 });
 
 export const assertOwnsQuiz = (email: string, quizId: string) =>
-  quizLock((resolve, reject) => {
+  mutateLock(() => {
     if (!(quizId in quizzes)) {
-      reject(new InputError('Invalid quiz ID'));
+      throw new InputError('Invalid quiz ID');
     } else if (quizzes[quizId].owner !== email) {
-      reject(new InputError('Admin does not own this Quiz'));
-    } else {
-      resolve();
+      throw new InputError('Admin does not own this Quiz');
     }
   });
 
 export const getQuizzesFromAdmin = (email: string) =>
-  quizLock((resolve) => {
-    resolve(
-      Object.keys(quizzes)
-        .filter((key) => quizzes[key].owner === email)
-        .map((key) => ({
-          id: parseInt(key, 10),
-          createdAt: quizzes[key].createdAt,
-          name: quizzes[key].name,
-          thumbnail: quizzes[key].thumbnail,
-          owner: quizzes[key].owner,
-          active: getActiveSessionIdFromQuizId(key),
-          oldSessions: getInactiveSessionsIdFromQuizId(key),
-        }))
-    );
+  mutateLock(() => {
+    return Object.keys(quizzes)
+      .filter((key) => quizzes[key].owner === email)
+      .map((key) => ({
+        id: parseInt(key, 10),
+        createdAt: quizzes[key].createdAt,
+        name: quizzes[key].name,
+        thumbnail: quizzes[key].thumbnail,
+        owner: quizzes[key].owner,
+        active: getActiveSessionIdFromQuizId(key),
+        oldSessions: getInactiveSessionsIdFromQuizId(key),
+      }));
   });
 
 export const addQuiz = (name: string, email: string) =>
-  quizLock((resolve, reject) => {
+  mutateLock(() => {
     if (name === undefined) {
-      reject(new InputError('Must provide a name for new quiz'));
+      throw new InputError('Must provide a name for new quiz');
     } else {
       const newId = newQuizId();
       quizzes[newId] = newQuizPayload(name, email);
       console.log('quzzies after addition: ', quizzes);
-      resolve(newId);
+      return newId;
     }
   });
 
 export const getQuiz = (quizId: string) =>
-  quizLock((resolve) => {
-    resolve({
+  mutateLock(() => {
+    return {
       ...quizzes[quizId],
       active: getActiveSessionIdFromQuizId(quizId),
       oldSessions: getInactiveSessionsIdFromQuizId(quizId),
-    });
+    };
   });
 
 export const updateQuiz = (
@@ -265,7 +229,7 @@ export const updateQuiz = (
   name?: string,
   thumbnail?: string
 ) =>
-  quizLock((resolve) => {
+  mutateLock(() => {
     if (questions) {
       quizzes[quizId].questions = questions;
     }
@@ -275,35 +239,33 @@ export const updateQuiz = (
     if (thumbnail) {
       quizzes[quizId].thumbnail = thumbnail;
     }
-    resolve();
   });
 
 export const removeQuiz = (quizId: string) =>
-  quizLock((resolve) => {
+  mutateLock(() => {
     delete quizzes[quizId];
-    resolve();
   });
 
 export const startQuiz = (quizId: string) =>
-  quizLock((resolve, reject) => {
+  mutateLock(() => {
     if (quizHasActiveSession(quizId)) {
-      reject(new InputError('Quiz already has active session'));
+      throw new InputError('Quiz already has active session');
     } else {
       const id = newSessionId();
       sessions[id] = newSessionPayload(quizId);
-      resolve(id);
+      return id;
     }
   });
 
 export const advanceQuiz = (quizId: string) =>
-  quizLock((resolve, reject) => {
+  mutateLock(() => {
     const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
     if (!sessionObject) {
-      return reject(new InputError('Quiz has no active session'));
+      throw new InputError('Quiz has no active session');
     }
     const { id, session } = sessionObject;
     if (!session.active) {
-      reject(new InputError('Cannot advance a quiz that is not active'));
+      throw new InputError('Cannot advance a quiz that is not active');
     } else {
       const totalQuestions = session.questions.length;
       session.position += 1;
@@ -322,18 +284,17 @@ export const advanceQuiz = (quizId: string) =>
           session.answerAvailable = true;
         }, questionDuration * 1000);
       }
-      resolve(session.position);
+      return session.position;
     }
   });
 
 export const endQuiz = (quizId: string) =>
-  quizLock((resolve, reject) => {
+  mutateLock(() => {
     const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
     if (!sessionObject) {
-      return reject(new InputError('Quiz has no active session'));
+      throw new InputError('Quiz has no active session');
     }
     sessionObject.session.active = false;
-    resolve();
   });
 
 /***************************************************************
@@ -433,88 +394,85 @@ export const assertOwnsSession = async (email: string, sessionId: string) => {
 };
 
 export const sessionResults = (sessionId: string) =>
-  sessionLock((resolve, reject) => {
+  mutateLock(() => {
     const session = sessions[sessionId];
     if (session.active) {
-      reject(new InputError('Cannot get results for active session'));
+      throw new InputError('Cannot get results for active session');
     } else {
-      resolve(Object.keys(session.players).map((pid) => session.players[pid]));
+      return Object.keys(session.players).map((pid) => session.players[pid]);
     }
   });
 
-export const playerJoin = (name: string, sessionId: string) =>
-  sessionLock((resolve, reject) => {
+export const playerJoin = async (name: string, sessionId: string) =>
+  await mutateLock(() => {
     if (name === undefined) {
-      reject(new InputError('Name must be supplied'));
+      throw new InputError('Name must be supplied');
     } else {
       const session = getActiveSessionFromSessionId(sessionId);
       if (session.position > 0) {
-        reject(new InputError('Session has already begun'));
+        throw new InputError('Session has already begun');
       } else {
         const id = newPlayerId();
         session.players[id] = newPlayerPayload(name, session.questions.length);
-        resolve(parseInt(id, 10));
+        console.log('sessions after player join: ', sessions);
+        return parseInt(id, 10);
       }
     }
   });
 
 export const hasStarted = (playerId: string) =>
-  sessionLock((resolve) => {
+  mutateLock(() => {
     const session = getActiveSessionFromSessionId(
       sessionIdFromPlayerId(playerId)
     );
     if (session.isoTimeLastQuestionStarted !== null) {
-      resolve(true);
+      return true;
     } else {
-      resolve(false);
+      return false;
     }
   });
 
 export const getQuestion = (playerId: string) =>
-  sessionLock((resolve, reject) => {
+  mutateLock(() => {
     const session = getActiveSessionFromSessionId(
       sessionIdFromPlayerId(playerId)
     );
     if (session.position === -1) {
-      reject(new InputError('Session has not started yet'));
+      throw new InputError('Session has not started yet');
     } else {
-      resolve({
+      return {
         ...quizQuestionPublicReturn(session.questions[session.position]),
         isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
-      });
+      };
     }
   });
 
 export const getAnswers = (playerId: string) =>
-  sessionLock((resolve, reject) => {
+  mutateLock(() => {
     const session = getActiveSessionFromSessionId(
       sessionIdFromPlayerId(playerId)
     );
     if (session.position === -1) {
-      reject(new InputError('Session has not started yet'));
+      throw new InputError('Session has not started yet');
     } else if (!session.answerAvailable) {
-      reject(new InputError('Question time has not been completed'));
+      throw new InputError('Question time has not been completed');
     } else {
-      resolve(
-        quizQuestionGetCorrectAnswers(session.questions[session.position])
-      );
+      return quizQuestionGetCorrectAnswers(session.questions[session.position]);
     }
   });
 
 export const submitAnswers = (playerId: string, answerList: PlayerAnswer[]) =>
-  sessionLock((resolve, reject) => {
+  mutateLock(() => {
     if (answerList === undefined || answerList.length === 0) {
-      reject(new InputError('Answers must be provided'));
+      throw new InputError('Answers must be provided');
     } else {
       const session = getActiveSessionFromSessionId(
         sessionIdFromPlayerId(playerId)
       );
       if (session.position === -1) {
-        reject(new InputError('Session has not started yet'));
+        throw new InputError('Session has not started yet');
       } else if (session.answerAvailable) {
-        reject(
-          new InputError("Can't answer question once answer is available")
-        );
+        throw new InputError("Can't answer question once answer is available");
       } else {
         session.players[playerId].answers[session.position] = {
           questionStartedAt: session.isoTimeLastQuestionStarted,
@@ -527,19 +485,18 @@ export const submitAnswers = (playerId: string, answerList: PlayerAnswer[]) =>
               ).sort()
             ) === JSON.stringify(answerList.sort()),
         };
-        resolve();
       }
     }
   });
 
 export const getResults = (playerId: string) =>
-  sessionLock((resolve, reject) => {
+  mutateLock(() => {
     const session = sessions[sessionIdFromPlayerId(playerId)];
     if (session.active) {
-      reject(new InputError('Session is ongoing, cannot get results yet'));
+      throw new InputError('Session is ongoing, cannot get results yet');
     } else if (session.position === -1) {
-      reject(new InputError('Session has not started yet'));
+      throw new InputError('Session has not started yet');
     } else {
-      resolve(session.players[playerId].answers);
+      return session.players[playerId].answers;
     }
   });
