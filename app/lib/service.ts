@@ -439,6 +439,7 @@ export const getQuestion = (playerId: string): Promise<PublicQuestionReturn> =>
       return {
         ...quizQuestionPublicReturn(session.questions[session.position]),
         isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
+        lastQuestion: session.position === session.questions.length - 1,
       };
     }
   });

@@ -4,6 +4,7 @@ import { PublicQuestion } from '@/app/lib/types';
 
 export type PublicQuestionReturn = PublicQuestion & {
   isoTimeLastQuestionStarted: string | null;
+  lastQuestion: boolean;
 };
 
 export async function GET(
@@ -13,7 +14,6 @@ export async function GET(
   try {
     const { playerid } = await params;
     const question = await getQuestion(playerid);
-    console.log('Retrieved question for player ', playerid, ': ', question);
     return NextResponse.json(
       { question },
       { headers: { 'Cache-Control': 'no-store' } }

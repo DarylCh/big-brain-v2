@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sessionResults, assertOwnsSession, getEmailFromAuthorization } from '@/app/lib/service';
+import {
+  sessionResults,
+  assertOwnsSession,
+  getEmailFromAuthorization,
+} from '@/app/lib/service';
 
 export async function GET(
   request: NextRequest,
@@ -8,12 +12,15 @@ export async function GET(
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'No authorization token' },
+        { status: 403 }
+      );
     }
     const email = getEmailFromAuthorization(authHeader);
     const { sessionid: sessionId } = await params;
     await assertOwnsSession(email, sessionId);
-    const results = await sessionResults(sessionId);
+    const results = sessionResults(sessionId);
     return NextResponse.json({ results });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {
@@ -22,6 +29,9 @@ export async function GET(
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }
