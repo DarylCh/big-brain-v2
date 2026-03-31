@@ -76,8 +76,6 @@ const Dashboard = () => {
         <JoinQuiz
           activatePopup={() => activatePopup()}
           activateClicked={() => changeClicked()}
-          changed={changed}
-          setChanged={setChanged}
           setDesc={setDesc}
         />
         <CreateQuiz

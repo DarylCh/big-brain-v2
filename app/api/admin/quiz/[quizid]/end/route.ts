@@ -3,7 +3,6 @@ import {
   endQuiz,
   assertOwnsQuiz,
   getEmailFromAuthorization,
-  save,
 } from '@/app/lib/service';
 
 export async function POST(
