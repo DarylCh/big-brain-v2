@@ -48,8 +48,17 @@ export type UpdateQuizRequest = {
   questions?: object[];
 };
 
+export type SessionStatus = {
+  active: boolean;
+  answerAvailable: boolean;
+  isoTimeLastQuestionStarted: string | null;
+  position: number;
+  questions: Question[];
+  players: string[];
+};
+
 export type SessionStatusResponse = {
-  results: object;
+  results: SessionStatus;
 };
 
 export type SessionResultsResponse = {

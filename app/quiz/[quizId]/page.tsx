@@ -18,6 +18,7 @@ import QuestionsTable from './_components/QuestionsTable';
 import SessionsPanel from './_components/SessionsPanel';
 import { Question } from '@/app/lib/types';
 import { primaryColor, primaryHoverColor } from '@/app/lib/colors';
+import { useUser } from '@/app/lib/UserContext';
 
 export default function QuizDetailsPage({
   params,
@@ -26,9 +27,7 @@ export default function QuizDetailsPage({
 }) {
   const { quizId } = use(params);
   const router = useRouter();
-  const [token] = useState(() =>
-    typeof window !== 'undefined' ? (localStorage.getItem('token') ?? '') : ''
-  );
+  const { token } = useUser();
 
   const [quiz, setQuiz] = useState<AdminGetQuizResponse | null>(null);
   const [refetchDetails, setRefetchDetails] = useState(false);
@@ -259,7 +258,7 @@ export default function QuizDetailsPage({
         />
       </GroupDiv>
       <GroupDiv>
-        <SessionsPanel quiz={quiz} />
+        <SessionsPanel quiz={quiz} token={token} />
       </GroupDiv>
       <NewQuestionForm
         gameId={quizId}

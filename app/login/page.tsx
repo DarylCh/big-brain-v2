@@ -1,5 +1,5 @@
 'use client';
-import LoginForm from './components/OkForm';
+import LoginForm from './components/LoginForm';
 import NavBar from '../components/NavBar';
 
 export function Login() {

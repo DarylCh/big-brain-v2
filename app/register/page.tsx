@@ -2,44 +2,37 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LRField, LRFieldBottom } from '../login/components/LoginRegField';
 import {
   LoginRegBackgroundStyle,
   TitleStyle,
   CentredTextDiv,
-} from '../login/components/OkForm';
+} from '../login/components/LoginForm';
 import FullButton from '../components/FullButton';
 import { navLinkStyle } from '../components/AdminNavBar';
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
+import { FormControl, TextField } from '@mui/material';
+import { apiClient } from '@/app/lib/apiClient';
+import { useUser } from '@/app/lib/UserContext';
+import { primaryColor } from '@/app/lib/colors';
 
 // This component is the register form that is used by the register page
 const RegisterPage = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
+  const { setToken } = useUser();
 
-  // This function attempts to submit the user's registered
-  // details to the backend
+  const passwordsMatch = password === confirmPassword;
+  const isValid =
+    name !== '' && email !== '' && password !== '' && passwordsMatch;
+
   const regFetch = async () => {
-    console.log(email, name, password);
-    const req = await fetch('/api/admin/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: name,
-        email: email,
-        password: password,
-      }),
-    });
-    if (req.ok) {
-      const response = await req.json();
-      localStorage.setItem('token', response.token);
-      router.push('/home');
-    }
+    const response = await apiClient.register({ name, email, password });
+    setToken(response.token);
+    router.push('/home');
   };
 
   return (
@@ -51,44 +44,77 @@ const RegisterPage = () => {
       </header>
       <div id="register-form" style={LoginRegBackgroundStyle}>
         <h3 style={TitleStyle}>Admin Registration</h3>
-        <form aria-label="Register form">
-          <LRField
+        <FormControl
+          aria-label="Register form"
+          style={{
+            width: '100%',
+            gap: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <TextField
             id="name"
+            label="Name"
             type="text"
-            text="Name"
+            placeholder="Name"
+            aria-label="Name field"
             onChange={(e) => setName(e.target.value)}
-            aria="Name field"
-          ></LRField>
-          <LRField
+            sx={{ backgroundColor: 'white', borderRadius: '5px' }}
+          />
+          <TextField
             id="email"
+            label="Email"
             type="text"
-            text="Email"
+            placeholder="Email"
+            aria-label="Email field"
             onChange={(e) => setEmail(e.target.value)}
-            aria="Email field"
-          ></LRField>
-          <LRFieldBottom
+            sx={{ backgroundColor: 'white', borderRadius: '5px' }}
+          />
+          <TextField
             id="password"
+            label="Password"
             type="password"
-            text="Password"
-            aria="Password field"
+            placeholder="Password"
+            aria-label="Password field"
             onChange={(e) => setPassword(e.target.value)}
-          ></LRFieldBottom>
+            sx={{ backgroundColor: 'white', borderRadius: '5px' }}
+          />
+          <TextField
+            id="confirm-password"
+            label="Confirm Password"
+            type="password"
+            placeholder="Confirm Password"
+            aria-label="Confirm password field"
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={confirmPassword !== '' && !passwordsMatch}
+            helperText={
+              confirmPassword !== '' && !passwordsMatch
+                ? 'Passwords do not match'
+                : ''
+            }
+            sx={{ backgroundColor: 'white', borderRadius: '5px' }}
+          />
           <FullButton
             id="Submit"
             aria-label="Submit Button"
-            onClick={regFetch}
+            onClick={() => void regFetch()}
+            disabled={!isValid}
           >
             Submit
           </FullButton>
           <CentredTextDiv>
             <p>
               Have an account already?{' '}
-              <Link href="/login" style={navLinkStyle}>
+              <Link
+                href="/login"
+                style={{ ...navLinkStyle, color: primaryColor }}
+              >
                 Log in
               </Link>
             </p>
           </CentredTextDiv>
-        </form>
+        </FormControl>
       </div>
     </>
   );

@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { LRField, LRFieldBottom } from './LoginRegField';
 import { useRouter } from 'next/navigation';
 import ErrorPopup from '@/app/components/ErrorPopup';
 import { styled } from '@mui/material/styles';
 import FullButton from '@/app/components/FullButton';
 import { navLinkStyle } from '@/app/components/AdminNavBar';
+import { useUser } from '@/app/lib/UserContext';
+import { FormControl, TextField } from '@mui/material';
+import { apiClient } from '@/app/lib/apiClient';
+import { primaryColor } from '@/app/lib/colors';
 
 export const CentredTextDiv = styled('div')`
   text-align: center;
@@ -15,12 +18,13 @@ export const CentredTextDiv = styled('div')`
 `;
 
 export const LoginRegBackgroundStyle: React.CSSProperties = {
-  backgroundColor: '#FF8E00',
+  backgroundColor: '#fafafa',
   textAlign: 'left',
   width: '400px',
   margin: '50px auto',
   padding: '25px 40px',
-  borderRadius: '20px',
+  borderRadius: '8px',
+  boxShadow: '0px 2px 2px 2px #dedede',
 };
 
 export const TitleStyle: React.CSSProperties = {
@@ -28,6 +32,7 @@ export const TitleStyle: React.CSSProperties = {
   marginBottom: '30px',
   fontWeight: 'bold',
   fontSize: '24px',
+  color: primaryColor,
 };
 
 // This component is the login form used by
@@ -39,6 +44,7 @@ const LoginForm = () => {
   const descTitle = 'Login Error!';
   const desc = 'Invalid login credentials.';
   const router = useRouter();
+  const { setToken } = useUser();
 
   // This function activates the popup
   const activatePopup = () => {
@@ -48,22 +54,11 @@ const LoginForm = () => {
   // This function attempts to log the user into the system
   // by calling the backend
   const logFetch = async () => {
-    console.log(email, password);
-    const req = await fetch('/api/admin/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password,
-      }),
-    });
-    if (req.ok) {
-      const response = await req.json();
-      localStorage.setItem('token', response.token);
+    try {
+      const response = await apiClient.login({ email, password });
+      setToken(response.token);
       router.push('/home');
-    } else {
+    } catch {
       activatePopup();
     }
   };
@@ -73,39 +68,45 @@ const LoginForm = () => {
         <ErrorPopup title={descTitle} desc={desc} toggle={activatePopup} />
       )}
       <h3 style={TitleStyle}>Account Login</h3>
-      <form aria-label="login form">
-        <LRField
+      <FormControl aria-label="login form" style={{ width: '100%', gap: '16px', display: 'flex', flexDirection: 'column' }}>
+        <TextField
           id="email"
-          text="Email"
+          label="Email"
           type="text"
-          aria="email field"
+          placeholder="Email"
+          aria-label="email field"
           onChange={(e) => setEmail(e.target.value)}
-        ></LRField>
-        <LRFieldBottom
+          sx={{ backgroundColor: 'white', borderRadius: '5px' }}
+        />
+        <TextField
           id="password"
-          text="Password"
-          aria="password field"
+          label="Password"
           type="password"
+          placeholder="Password"
+          aria-label="password field"
           onChange={(e) => setPassword(e.target.value)}
-        ></LRFieldBottom>
+          sx={{ backgroundColor: 'white', borderRadius: '5px' }}
+        />
         <FullButton
           id="login-button"
           aria-label="login button"
-          onClick={logFetch}
+          onClick={() => void logFetch()}
+          disabled={email === '' || password === ''}
         >
           Log In
         </FullButton>
         <CentredTextDiv>
           <p>
             Don&apos;t have an account?{' '}
-            <Link href="/register" style={navLinkStyle}>
+            <Link href="/register" style={{ ...navLinkStyle, color: primaryColor }}>
               Sign Up
             </Link>
           </p>
         </CentredTextDiv>
-      </form>
+      </FormControl>
     </div>
   );
 };
 
 export default LoginForm;
+

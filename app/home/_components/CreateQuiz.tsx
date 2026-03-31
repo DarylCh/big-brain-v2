@@ -5,6 +5,7 @@ import Title from '@/app/components/Title';
 import { FormControl, TextField } from '@mui/material';
 import FullButton from '@/app/components/FullButton';
 import { apiClient } from '@/app/lib/apiClient';
+import { useUser } from '@/app/lib/UserContext';
 
 // This component is used to create a new quiz on the
 // quiz dashboard
@@ -23,6 +24,7 @@ const CreateQuiz = ({
 }) => {
   const [name, setName] = useState('');
   const [createQuizLoading, setCreateQuizLoading] = useState(false);
+  const { token } = useUser();
 
   // This function checks that the data is valid
   // then changes sends it to the backend to
@@ -30,7 +32,6 @@ const CreateQuiz = ({
   const submit = async () => {
     try {
       setCreateQuizLoading(true);
-      const storedToken = localStorage.getItem('token');
       if (name === '') {
         setDesc('Please enter a name');
         activatePopup();
@@ -38,7 +39,7 @@ const CreateQuiz = ({
       }
 
       activateClicked();
-      await apiClient.createQuiz(storedToken ?? '', { name });
+      await apiClient.createQuiz(token, { name });
       // const req = await fetch('/api/admin/quiz', {
       //   method: 'POST',
       //   headers: {
