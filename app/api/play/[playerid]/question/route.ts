@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getQuestion } from '@/app/lib/service';
+import { PublicQuestion } from '@/app/lib/types';
+
+export type PublicQuestionReturn = PublicQuestion & {
+  isoTimeLastQuestionStarted: string | null;
+};
 
 export async function GET(
   request: NextRequest,

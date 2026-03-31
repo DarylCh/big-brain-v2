@@ -59,10 +59,16 @@ const JoinGame = ({
         }
       );
 
-      const response = await req.json();
+      const response = (await req.json()) as Promise<{
+        playerId: string;
+      }>;
+
       console.log('Join game response: ', response);
+      const params = new URLSearchParams({
+        playerId: (await response).playerId,
+      });
       if (req.ok) {
-        router.push(`/play/${gameCode}`);
+        router.push(`/play/${gameCode}?${params.toString()}`);
       }
 
       if (!req.ok) {

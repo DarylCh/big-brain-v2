@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { playerid: string } }
 ) {
   try {
-    const result = await getResults(params.playerid);
+    const result = getResults(params.playerid);
     return NextResponse.json(result);
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'InputError') {

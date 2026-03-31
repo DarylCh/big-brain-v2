@@ -7,9 +7,10 @@ export async function GET(
 ) {
   try {
     const { playerid } = await params;
-    const started = await hasStarted(playerid);
+    const started = hasStarted(playerid);
     return NextResponse.json({ started });
   } catch (error: unknown) {
+    console.error('Error in retrieving player status:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

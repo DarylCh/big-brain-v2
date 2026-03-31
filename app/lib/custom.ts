@@ -1,16 +1,20 @@
-import { Question } from "./types";
-
+import { PublicQuestion, Question } from './types';
 
 /*
  For a given data structure of a question, produce another
  object that doesn't contain any important meta data (e.g. the answer)
  to return to a "player"
 */
-export const quizQuestionPublicReturn = (question: Question) => {
+export const quizQuestionPublicReturn = (
+  question: Question
+): PublicQuestion => {
   console.log('See question: ', question);
-  const newQuestion = JSON.parse(JSON.stringify(question));
-  delete newQuestion.Correct;
-  return newQuestion;
+
+  return {
+    question: question.question,
+    options: question.options,
+    timeNeeded: question.timeNeeded,
+  };
 };
 
 /*

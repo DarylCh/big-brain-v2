@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { endQuiz, assertOwnsQuiz, getEmailFromAuthorization, save } from '@/app/lib/service';
+import {
+  endQuiz,
+  assertOwnsQuiz,
+  getEmailFromAuthorization,
+  save,
+} from '@/app/lib/service';
 
 export async function POST(
   request: NextRequest,
@@ -8,13 +13,15 @@ export async function POST(
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'No authorization token' },
+        { status: 403 }
+      );
     }
     const email = getEmailFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    await assertOwnsQuiz(email, quizId);
+    assertOwnsQuiz(email, quizId);
     await endQuiz(quizId);
-    await save();
     return NextResponse.json({});
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {
@@ -23,6 +30,9 @@ export async function POST(
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }

@@ -5,6 +5,8 @@ export type Question = {
   timeNeeded: number;
 }
 
+export type PublicQuestion = Omit<Question, 'Correct'>;
+
 export type PlayerAnswer = {
   questionStartedAt: string | null;
   answeredAt: string | null;
@@ -24,7 +26,6 @@ export type Session = {
   players: { [playerId: string]: Player };
   questions: Question[];
   active: boolean;
-  answerAvailable: boolean;
 };
 
 export type Sessions = { [sessionId: string]: Session };
@@ -47,5 +48,3 @@ export type Quiz = {
 };
 
 export type Quizzes = { [quizId: string]: Quiz };
-
-export type SessionTimeouts = { [sessionId: string]: NodeJS.Timeout };

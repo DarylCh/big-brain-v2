@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getQuiz, updateQuiz, removeQuiz, assertOwnsQuiz, getEmailFromAuthorization, save } from '@/app/lib/service';
+import {
+  getQuiz,
+  updateQuiz,
+  removeQuiz,
+  assertOwnsQuiz,
+  getEmailFromAuthorization,
+  save,
+} from '@/app/lib/service';
 
 export async function GET(
   request: NextRequest,
@@ -9,17 +16,23 @@ export async function GET(
     const authHeader = request.headers.get('Authorization');
     const { quizid: quizId } = await params;
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'No authorization token' },
+        { status: 403 }
+      );
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, quizId);
-    const quiz = await getQuiz(quizId);
+    assertOwnsQuiz(email, quizId);
+    const quiz = getQuiz(quizId);
     return NextResponse.json(quiz);
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }
 
@@ -31,20 +44,25 @@ export async function PUT(
     const authHeader = request.headers.get('Authorization');
     const { quizid: quizId } = await params;
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'No authorization token' },
+        { status: 403 }
+      );
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, quizId);
-    
+    assertOwnsQuiz(email, quizId);
+
     const { questions, name, thumbnail } = await request.json();
     await updateQuiz(quizId, questions, name, thumbnail);
-    await save();
     return NextResponse.json({});
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }
 
@@ -56,17 +74,22 @@ export async function DELETE(
     const authHeader = request.headers.get('Authorization');
     const { quizid: quizId } = await params;
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'No authorization token' },
+        { status: 403 }
+      );
     }
     const email = getEmailFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, quizId);
+    assertOwnsQuiz(email, quizId);
     await removeQuiz(quizId);
-    await save();
     return NextResponse.json({});
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }

@@ -16,8 +16,8 @@ import {
   Quizzes,
   Session,
   Sessions,
-  SessionTimeouts,
 } from './types';
+import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
 
 const lock = new AsyncLock();
 
@@ -32,40 +32,36 @@ let admins: Admins = {};
 let quizzes: Quizzes = {};
 let sessions: Sessions = {};
 
-const sessionTimeouts: SessionTimeouts = {};
-
-const update = (
+const update = async (
   admins: Admins,
   quizzes: Quizzes,
   sessions: Sessions
-): Promise<void> =>
-  new Promise((resolve, reject) => {
-    lock.acquire('saveData', () => {
-      try {
-        console.log('Saving to database: ', { admins, quizzes, sessions });
-        fs.writeFileSync(
-          DATABASE_FILE,
-          JSON.stringify(
-            {
-              admins,
-              quizzes,
-              sessions,
-            },
-            null,
-            2
-          )
-        );
-        resolve();
-      } catch (error) {
-        console.error('ERROR: Failed to write to database', error);
-        reject(new Error('Writing to database failed'));
-      }
-    });
+): Promise<void> => {
+  await lock.acquire('saveData', async () => {
+    try {
+      console.log('Saving to database: ', { admins, quizzes, sessions });
+      fs.writeFileSync(
+        DATABASE_FILE,
+        JSON.stringify(
+          {
+            admins,
+            quizzes,
+            sessions,
+          },
+          null,
+          2
+        )
+      );
+    } catch (error) {
+      console.error('ERROR: Failed to write to database', error);
+      throw new Error('Writing to database failed');
+    }
   });
+};
 
-export const save = () => update(admins, quizzes, sessions);
-export const reset = () => {
-  update({}, {}, {});
+export const save = async () => await update(admins, quizzes, sessions);
+export const reset = async () => {
+  await update({}, {}, {});
   admins = {};
   quizzes = {};
   sessions = {};
@@ -78,7 +74,7 @@ try {
   sessions = data.sessions;
 } catch {
   console.log('WARNING: No database found, create a new one');
-  save();
+  await save();
 }
 
 /***************************************************************
@@ -94,12 +90,28 @@ const newPlayerId = () =>
       .flat()
   );
 
+const isAnswerAvailable = (session: Session) => {
+  if (session.position === -1 || session.isoTimeLastQuestionStarted === null) {
+    return false;
+  }
+
+  const startedAtMs = new Date(session.isoTimeLastQuestionStarted).getTime();
+  if (Number.isNaN(startedAtMs)) {
+    return false;
+  }
+
+  const durationMs =
+    quizQuestionGetDuration(session.questions[session.position]) * 1000;
+  return Date.now() >= startedAtMs + durationMs;
+};
+
 const mutateLock = async <T>(callback: () => T | Promise<T>) => {
   let result: T;
   await lock.acquire('sessionMutateLock', async () => {
     result = await callback();
     await save();
   });
+
   return result!;
 };
 
@@ -136,8 +148,8 @@ export const getEmailFromAuthorization = (authorization: string) => {
   }
 };
 
-export const login = (email: string, password: string) =>
-  mutateLock(() => {
+export const login = async (email: string, password: string) =>
+  await mutateLock(() => {
     if (email in admins) {
       if (admins[email].password === password) {
         admins[email].sessionActive = true;
@@ -147,13 +159,13 @@ export const login = (email: string, password: string) =>
     throw new InputError('Invalid username or password');
   });
 
-export const logout = (email: string) =>
-  mutateLock(() => {
+export const logout = async (email: string) =>
+  await mutateLock(() => {
     admins[email].sessionActive = false;
   });
 
-export const register = (email: string, password: string, name: string) =>
-  mutateLock(() => {
+export const register = async (email: string, password: string, name: string) =>
+  await mutateLock(() => {
     if (email in admins) {
       throw new InputError('Email address already registered');
     }
@@ -178,32 +190,29 @@ const newQuizPayload = (name: string, owner: string): Quiz => ({
   createdAt: new Date().toISOString(),
 });
 
-export const assertOwnsQuiz = (email: string, quizId: string) =>
-  mutateLock(() => {
-    if (!(quizId in quizzes)) {
-      throw new InputError('Invalid quiz ID');
-    } else if (quizzes[quizId].owner !== email) {
-      throw new InputError('Admin does not own this Quiz');
-    }
-  });
+export const assertOwnsQuiz = (email: string, quizId: string) => {
+  if (!(quizId in quizzes)) {
+    throw new InputError('Invalid quiz ID');
+  } else if (quizzes[quizId].owner !== email) {
+    throw new InputError('Admin does not own this Quiz');
+  }
+};
 
 export const getQuizzesFromAdmin = (email: string) =>
-  mutateLock(() => {
-    return Object.keys(quizzes)
-      .filter((key) => quizzes[key].owner === email)
-      .map((key) => ({
-        id: parseInt(key, 10),
-        createdAt: quizzes[key].createdAt,
-        name: quizzes[key].name,
-        thumbnail: quizzes[key].thumbnail,
-        owner: quizzes[key].owner,
-        active: getActiveSessionIdFromQuizId(key),
-        oldSessions: getInactiveSessionsIdFromQuizId(key),
-      }));
-  });
+  Object.keys(quizzes)
+    .filter((key) => quizzes[key].owner === email)
+    .map((key) => ({
+      id: parseInt(key, 10),
+      createdAt: quizzes[key].createdAt,
+      name: quizzes[key].name,
+      thumbnail: quizzes[key].thumbnail,
+      owner: quizzes[key].owner,
+      active: getActiveSessionIdFromQuizId(key),
+      oldSessions: getInactiveSessionsIdFromQuizId(key),
+    }));
 
-export const addQuiz = (name: string, email: string) =>
-  mutateLock(() => {
+export const addQuiz = async (name: string, email: string) =>
+  await mutateLock(() => {
     if (name === undefined) {
       throw new InputError('Must provide a name for new quiz');
     } else {
@@ -214,22 +223,19 @@ export const addQuiz = (name: string, email: string) =>
     }
   });
 
-export const getQuiz = (quizId: string) =>
-  mutateLock(() => {
-    return {
-      ...quizzes[quizId],
-      active: getActiveSessionIdFromQuizId(quizId),
-      oldSessions: getInactiveSessionsIdFromQuizId(quizId),
-    };
-  });
+export const getQuiz = (quizId: string) => ({
+  ...quizzes[quizId],
+  active: getActiveSessionIdFromQuizId(quizId),
+  oldSessions: getInactiveSessionsIdFromQuizId(quizId),
+});
 
-export const updateQuiz = (
+export const updateQuiz = async (
   quizId: string,
   questions?: Question[],
   name?: string,
   thumbnail?: string
 ) =>
-  mutateLock(() => {
+  await mutateLock(() => {
     if (questions) {
       quizzes[quizId].questions = questions;
     }
@@ -241,13 +247,13 @@ export const updateQuiz = (
     }
   });
 
-export const removeQuiz = (quizId: string) =>
-  mutateLock(() => {
+export const removeQuiz = async (quizId: string) =>
+  await mutateLock(() => {
     delete quizzes[quizId];
   });
 
-export const startQuiz = (quizId: string) =>
-  mutateLock(() => {
+export const startQuiz = async (quizId: string) =>
+  await mutateLock(() => {
     if (quizHasActiveSession(quizId)) {
       throw new InputError('Quiz already has active session');
     } else {
@@ -257,39 +263,28 @@ export const startQuiz = (quizId: string) =>
     }
   });
 
-export const advanceQuiz = (quizId: string) =>
-  mutateLock(() => {
+export const advanceQuiz = async (quizId: string) =>
+  await mutateLock(async () => {
     const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
     if (!sessionObject) {
       throw new InputError('Quiz has no active session');
     }
-    const { id, session } = sessionObject;
+    const { session } = sessionObject;
     if (!session.active) {
       throw new InputError('Cannot advance a quiz that is not active');
     } else {
       const totalQuestions = session.questions.length;
       session.position += 1;
-      session.answerAvailable = false;
       session.isoTimeLastQuestionStarted = new Date().toISOString();
       if (session.position >= totalQuestions) {
-        endQuiz(quizId);
-      } else {
-        const questionDuration = quizQuestionGetDuration(
-          session.questions[session.position]
-        );
-        if (sessionTimeouts[id]) {
-          clearTimeout(sessionTimeouts[id]);
-        }
-        sessionTimeouts[id] = setTimeout(() => {
-          session.answerAvailable = true;
-        }, questionDuration * 1000);
+        await endQuiz(quizId);
       }
       return session.position;
     }
   });
 
-export const endQuiz = (quizId: string) =>
-  mutateLock(() => {
+export const endQuiz = async (quizId: string) =>
+  await mutateLock(() => {
     const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
     if (!sessionObject) {
       throw new InputError('Quiz has no active session');
@@ -336,6 +331,7 @@ const getInactiveSessionsIdFromQuizId = (quizId: string) =>
 
 const getActiveSessionFromSessionId = (sessionId: string) => {
   if (sessionId in sessions) {
+    console.log('1');
     if (sessions[sessionId].active) {
       return sessions[sessionId];
     }
@@ -345,6 +341,7 @@ const getActiveSessionFromSessionId = (sessionId: string) => {
 
 const sessionIdFromPlayerId = (playerId: string) => {
   for (const sessionId of Object.keys(sessions)) {
+    console.log('Checking session ', sessionId, ' for playerId ', playerId);
     if (
       Object.keys(sessions[sessionId].players).filter((p) => p === playerId)
         .length > 0
@@ -362,7 +359,6 @@ const newSessionPayload = (quizId: string) => ({
   players: {},
   questions: copy(quizzes[quizId].questions),
   active: true,
-  answerAvailable: false,
 });
 
 const newPlayerPayload = (name: string, numQuestions: number) => ({
@@ -379,7 +375,7 @@ export const sessionStatus = (sessionId: string) => {
   const session = sessions[sessionId];
   return {
     active: session.active,
-    answerAvailable: session.answerAvailable,
+    answerAvailable: isAnswerAvailable(session),
     isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
     position: session.position,
     questions: session.questions,
@@ -393,15 +389,14 @@ export const assertOwnsSession = async (email: string, sessionId: string) => {
   await assertOwnsQuiz(email, sessions[sessionId].quizId);
 };
 
-export const sessionResults = (sessionId: string) =>
-  mutateLock(() => {
-    const session = sessions[sessionId];
-    if (session.active) {
-      throw new InputError('Cannot get results for active session');
-    } else {
-      return Object.keys(session.players).map((pid) => session.players[pid]);
-    }
-  });
+export const sessionResults = (sessionId: string) => {
+  const session = sessions[sessionId];
+  if (session.active) {
+    throw new InputError('Cannot get results for active session');
+  } else {
+    return Object.keys(session.players).map((pid) => session.players[pid]);
+  }
+};
 
 export const playerJoin = async (name: string, sessionId: string) =>
   await mutateLock(() => {
@@ -420,20 +415,20 @@ export const playerJoin = async (name: string, sessionId: string) =>
     }
   });
 
-export const hasStarted = (playerId: string) =>
-  mutateLock(() => {
-    const session = getActiveSessionFromSessionId(
-      sessionIdFromPlayerId(playerId)
-    );
-    if (session.isoTimeLastQuestionStarted !== null) {
-      return true;
-    } else {
-      return false;
-    }
-  });
+export const hasStarted = (playerId: string) => {
+  const session = getActiveSessionFromSessionId(
+    sessionIdFromPlayerId(playerId)
+  );
+  console.log('active session: ', session);
+  if (session.isoTimeLastQuestionStarted !== null) {
+    return true;
+  } else {
+    return false;
+  }
+};
 
-export const getQuestion = (playerId: string) =>
-  mutateLock(() => {
+export const getQuestion = (playerId: string): Promise<PublicQuestionReturn> =>
+  Promise.resolve().then(() => {
     const session = getActiveSessionFromSessionId(
       sessionIdFromPlayerId(playerId)
     );
@@ -447,22 +442,25 @@ export const getQuestion = (playerId: string) =>
     }
   });
 
-export const getAnswers = (playerId: string) =>
-  mutateLock(() => {
-    const session = getActiveSessionFromSessionId(
-      sessionIdFromPlayerId(playerId)
-    );
-    if (session.position === -1) {
-      throw new InputError('Session has not started yet');
-    } else if (!session.answerAvailable) {
-      throw new InputError('Question time has not been completed');
-    } else {
-      return quizQuestionGetCorrectAnswers(session.questions[session.position]);
-    }
-  });
+export const getAnswers = (playerId: string) => {
+  const session = getActiveSessionFromSessionId(
+    sessionIdFromPlayerId(playerId)
+  );
+  console.log('activeSession: ', session);
+  if (session.position === -1) {
+    throw new InputError('Session has not started yet');
+  } else if (!isAnswerAvailable(session)) {
+    throw new InputError('Question time has not been completed');
+  } else {
+    return quizQuestionGetCorrectAnswers(session.questions[session.position]);
+  }
+};
 
-export const submitAnswers = (playerId: string, answerList: PlayerAnswer[]) =>
-  mutateLock(() => {
+export const submitAnswers = async (
+  playerId: string,
+  answerList: PlayerAnswer[]
+) =>
+  await mutateLock(() => {
     if (answerList === undefined || answerList.length === 0) {
       throw new InputError('Answers must be provided');
     } else {
@@ -471,7 +469,7 @@ export const submitAnswers = (playerId: string, answerList: PlayerAnswer[]) =>
       );
       if (session.position === -1) {
         throw new InputError('Session has not started yet');
-      } else if (session.answerAvailable) {
+      } else if (isAnswerAvailable(session)) {
         throw new InputError("Can't answer question once answer is available");
       } else {
         session.players[playerId].answers[session.position] = {
@@ -489,14 +487,13 @@ export const submitAnswers = (playerId: string, answerList: PlayerAnswer[]) =>
     }
   });
 
-export const getResults = (playerId: string) =>
-  mutateLock(() => {
-    const session = sessions[sessionIdFromPlayerId(playerId)];
-    if (session.active) {
-      throw new InputError('Session is ongoing, cannot get results yet');
-    } else if (session.position === -1) {
-      throw new InputError('Session has not started yet');
-    } else {
-      return session.players[playerId].answers;
-    }
-  });
+export const getResults = (playerId: string) => {
+  const session = sessions[sessionIdFromPlayerId(playerId)];
+  if (session.active) {
+    throw new InputError('Session is ongoing, cannot get results yet');
+  } else if (session.position === -1) {
+    throw new InputError('Session has not started yet');
+  } else {
+    return session.players[playerId].answers;
+  }
+};
