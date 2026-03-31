@@ -18,6 +18,7 @@ import {
   Sessions,
 } from './types';
 import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
+import { QuizListItem } from './apiClient';
 
 const lock = new AsyncLock();
 
@@ -198,7 +199,7 @@ export const assertOwnsQuiz = (email: string, quizId: string) => {
   }
 };
 
-export const getQuizzesFromAdmin = (email: string) =>
+export const getQuizzesFromAdmin = (email: string): QuizListItem[] =>
   Object.keys(quizzes)
     .filter((key) => quizzes[key].owner === email)
     .map((key) => ({
@@ -207,6 +208,7 @@ export const getQuizzesFromAdmin = (email: string) =>
       name: quizzes[key].name,
       thumbnail: quizzes[key].thumbnail,
       owner: quizzes[key].owner,
+      numQuestions: quizzes[key].questions.length,
       active: getActiveSessionIdFromQuizId(key),
       oldSessions: getInactiveSessionsIdFromQuizId(key),
     }));
@@ -341,7 +343,6 @@ const getActiveSessionFromSessionId = (sessionId: string) => {
 
 const sessionIdFromPlayerId = (playerId: string) => {
   for (const sessionId of Object.keys(sessions)) {
-    console.log('Checking session ', sessionId, ' for playerId ', playerId);
     if (
       Object.keys(sessions[sessionId].players).filter((p) => p === playerId)
         .length > 0

@@ -8,8 +8,6 @@ import { PublicQuestion, Question } from './types';
 export const quizQuestionPublicReturn = (
   question: Question
 ): PublicQuestion => {
-  console.log('See question: ', question);
-
   return {
     question: question.question,
     options: question.options,

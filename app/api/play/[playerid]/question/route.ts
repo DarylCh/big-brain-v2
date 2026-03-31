@@ -13,11 +13,18 @@ export async function GET(
   try {
     const { playerid } = await params;
     const question = await getQuestion(playerid);
-    return NextResponse.json({ question });
+    console.log('Retrieved question for player ', playerid, ': ', question);
+    return NextResponse.json(
+      { question },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }

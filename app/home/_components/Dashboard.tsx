@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { styled } from '@mui/material/styles';
 import { Box, Typography } from '@mui/material';
-import GameFeed from '@/app/components/GameFeed';
+import GameFeed from '@/app/quiz/_components/QuizFeed';
 import ErrorPopup from '@/app/components/ErrorPopup';
-import CreateGame from './CreateGame';
-import JoinGame from './JoinGame';
+import CreateQuiz from './CreateQuiz';
+import JoinQuiz from './JoinQuiz';
 
 export const GroupDiv = styled('div')`
   background-color: #fff;
@@ -41,8 +41,8 @@ const Dashboard = () => {
     setPopup(!popup);
   };
 
-  // This function tracks if the CreateGame has been clicked
-  // to refresh the GameFeed data
+  // This function tracks if the CreateQuiz has been clicked
+  // to refresh the QuizFeed data
   const changeClicked = () => {
     setisClicked(!isClicked);
   };
@@ -73,14 +73,14 @@ const Dashboard = () => {
           gap: '16px',
         }}
       >
-        <JoinGame
+        <JoinQuiz
           activatePopup={() => activatePopup()}
           activateClicked={() => changeClicked()}
           changed={changed}
           setChanged={setChanged}
           setDesc={setDesc}
         />
-        <CreateGame
+        <CreateQuiz
           activatePopup={() => activatePopup()}
           activateClicked={() => changeClicked()}
           changed={changed}

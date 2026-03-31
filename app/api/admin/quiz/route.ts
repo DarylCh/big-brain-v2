@@ -3,7 +3,6 @@ import {
   getQuizzesFromAdmin,
   addQuiz,
   getEmailFromAuthorization,
-  save,
 } from '@/app/lib/service';
 
 export async function GET(request: NextRequest) {

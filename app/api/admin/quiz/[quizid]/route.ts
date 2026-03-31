@@ -5,8 +5,8 @@ import {
   removeQuiz,
   assertOwnsQuiz,
   getEmailFromAuthorization,
-  save,
 } from '@/app/lib/service';
+import { Question } from '@/app/lib/types';
 
 export async function GET(
   request: NextRequest,
