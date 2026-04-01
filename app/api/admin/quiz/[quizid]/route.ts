@@ -52,8 +52,8 @@ export async function PUT(
     const email = getEmailFromAuthorization(authHeader);
     assertOwnsQuiz(email, quizId);
 
-    const { questions, name, thumbnail } = await request.json();
-    await updateQuiz(quizId, questions, name, thumbnail);
+    const { questions, name, thumbnail, description, defaultQuestionDuration } = await request.json();
+    await updateQuiz(quizId, questions, name, thumbnail, description, defaultQuestionDuration);
     return NextResponse.json({});
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AccessError') {

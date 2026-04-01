@@ -13,14 +13,10 @@ const CreateQuiz = ({
   activatePopup,
   activateClicked,
   setDesc,
-  changed,
-  setChanged,
 }: {
   activatePopup: () => void;
   activateClicked: () => void;
   setDesc: (desc: string) => void;
-  changed: boolean;
-  setChanged: (changed: boolean) => void;
 }) => {
   const [name, setName] = useState('');
   const [createQuizLoading, setCreateQuizLoading] = useState(false);
@@ -40,16 +36,6 @@ const CreateQuiz = ({
 
       activateClicked();
       await apiClient.createQuiz(token, { name });
-      // const req = await fetch('/api/admin/quiz', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-type': 'application/json',
-      //     Authorization: storedToken ?? '',
-      //   },
-      //   body: JSON.stringify({
-      //     name: name,
-      //   }),
-      // });
     } finally {
       setCreateQuizLoading(false);
     }

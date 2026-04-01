@@ -8,7 +8,6 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
-    console.log('authHeader: ', authHeader);
     if (!authHeader) {
       return NextResponse.json(
         { error: 'No authorization token' },

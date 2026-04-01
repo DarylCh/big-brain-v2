@@ -6,6 +6,7 @@ import Title from '@/app/components/Title';
 import FullButton from '@/app/components/FullButton';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/app/lib/apiClient';
+import { useUser } from '@/app/lib/UserContext';
 
 const formStyle = {
   margin: '20px auto 10px auto',
@@ -24,8 +25,20 @@ const JoinQuiz = ({
   setDesc: (desc: string) => void;
 }) => {
   const [quizCode, setQuizCode] = useState('');
+  const [playerName, setPlayerName] = useState('');
   const [joinQuizLoading, setJoinQuizLoading] = useState(false);
   const router = useRouter();
+  const { token } = useUser();
+
+  const nameFromToken = (() => {
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return (payload.name as string | null) ?? null;
+    } catch {
+      return null;
+    }
+  })();
 
   // This function checks that the data is valid
   // then changes sends it to the backend to
@@ -38,16 +51,21 @@ const JoinQuiz = ({
         activatePopup();
         return;
       }
+      const resolvedName = nameFromToken ?? playerName;
+      if (resolvedName === '') {
+        setDesc('Please enter your name');
+        activatePopup();
+        return;
+      }
 
       activateClicked();
       const res = await apiClient.joinSession(quizCode, {
-        // TODO: Change this to the actual player name
-        name: 'Daryl',
+        name: resolvedName,
       });
 
-      console.log('Join quiz response: ', res);
       const params = new URLSearchParams({
         playerId: res.playerId.toString(),
+        name: resolvedName,
       });
 
       if (res) {
@@ -55,6 +73,7 @@ const JoinQuiz = ({
       }
     } finally {
       setQuizCode('');
+      setPlayerName('');
       setJoinQuizLoading(false);
     }
   };
@@ -72,8 +91,20 @@ const JoinQuiz = ({
           placeholder="Enter your game code"
           aria-label="Game code field"
           style={formStyle}
+          value={quizCode}
           onChange={(e) => setQuizCode(e.target.value)}
         />
+        {!nameFromToken && (
+          <TextField
+            id="player-name"
+            label="Name"
+            placeholder="Enter your name"
+            aria-label="Player name field"
+            style={formStyle}
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+        )}
         <FullButton
           id="join-quiz-button"
           aria-label="Join quiz button"

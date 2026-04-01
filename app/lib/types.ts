@@ -3,7 +3,7 @@ export type Question = {
   options: string[];
   Correct: number[];
   timeNeeded: number;
-}
+};
 
 export type PublicQuestion = Omit<Question, 'Correct'>;
 
@@ -41,6 +41,8 @@ export type Admins = { [email: string]: Admin };
 export type Quiz = {
   name: string;
   owner: string;
+  description: string | null;
+  defaultQuestionDuration: number | null;
   questions: Question[];
   thumbnail: string | null;
   active: number | null;

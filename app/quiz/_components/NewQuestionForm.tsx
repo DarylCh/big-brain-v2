@@ -1,5 +1,6 @@
 import {
   Box,
+  Checkbox,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -7,10 +8,10 @@ import {
   Button,
   TextField,
   FormControl,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
-import CheckIcon from '@mui/icons-material/Check';
 import { Question } from '@/app/lib/types';
 
 const AnswerOption = ({
@@ -28,11 +29,8 @@ const AnswerOption = ({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        ':hover': { backgroundColor: '#f0f0f0', cursor: 'pointer' },
-        borderRadius: '8px',
+        gap: 1,
       }}
-      onClick={() => updateOption({ correct: !option.correct })}
     >
       <TextField
         label={label}
@@ -42,9 +40,13 @@ const AnswerOption = ({
         margin="dense"
         slotProps={{ htmlInput: { maxLength: 80 } }}
       />
-      <CheckIcon
-        sx={{ color: option.correct ? 'green' : '#fafafa', marginLeft: '8px' }}
-      />
+      <Tooltip title={option.correct ? 'Mark as incorrect' : 'Mark as correct'}>
+        <Checkbox
+          checked={option.correct}
+          onChange={(e) => updateOption({ correct: e.target.checked })}
+          color="success"
+        />
+      </Tooltip>
     </Box>
   );
 };
@@ -62,6 +64,7 @@ export const NewQuestionForm = ({
   updateQuestions: (newQuestion: Question) => Promise<void>;
 }) => {
   const [newQuestionText, setNewQuestionText] = useState('');
+  const [timeNeeded, setTimeNeeded] = useState(15);
   const [options, setOptions] = useState<
     Record<AnswerOptions, { text: string; correct: boolean }>
   >({
@@ -76,8 +79,9 @@ export const NewQuestionForm = ({
       newQuestionText.trim() !== '' &&
       Object.values(options).every((o) => o.text.trim() !== '') &&
       Object.values(options).some((o) => o.correct) &&
-      !Object.values(options).every((o) => o.correct),
-    [newQuestionText, options]
+      !Object.values(options).every((o) => o.correct) &&
+      timeNeeded > 0,
+    [newQuestionText, options, timeNeeded]
   );
 
   const updateOption = useCallback(
@@ -96,13 +100,25 @@ export const NewQuestionForm = ({
   );
 
   const submitQuestion = async () => {
+    const correct = Object.values(options)
+      .map((o, i) => (o.correct ? i + 1 : null))
+      .filter((i): i is number => i !== null);
     const newQuestionObj: Question = {
       question: newQuestionText,
       options: Object.values(options).map((o) => o.text),
-      Correct: [1, 2],
-      timeNeeded: 100,
+      Correct: correct,
+      timeNeeded,
     };
     await updateQuestions(newQuestionObj);
+    setNewQuestionText('');
+    setTimeNeeded(15);
+    setOptions({
+      A: { text: '', correct: false },
+      B: { text: '', correct: false },
+      C: { text: '', correct: false },
+      D: { text: '', correct: false },
+    });
+    setOpen(false);
   };
 
   return (
@@ -131,9 +147,19 @@ export const NewQuestionForm = ({
               htmlInput: { maxLength: 150 },
             }}
           />
+          <TextField
+            variant="outlined"
+            label="Duration (seconds)"
+            type="number"
+            fullWidth
+            margin="dense"
+            sx={{ marginBottom: '16px' }}
+            value={timeNeeded}
+            onChange={(e) => setTimeNeeded(Math.max(1, Number(e.target.value)))}
+            slotProps={{ htmlInput: { min: 1, max: 300 } }}
+          />
           <Typography variant="body2" gutterBottom>
-            Add four options below. Note that there is a character limit of 80
-            for each option.
+            Add four options and check the box next to each correct answer.
           </Typography>
 
           {(Object.keys(options) as AnswerOptions[]).map((key) => (
@@ -152,7 +178,7 @@ export const NewQuestionForm = ({
           variant="contained"
           disabled={!isQuestionValid}
           onClick={() => {
-            submitQuestion();
+            void submitQuestion();
           }}
         >
           Add

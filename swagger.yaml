@@ -16,6 +16,167 @@ components:
         error:
           type: string
 
+    Question:
+      type: object
+      required: [question, options, Correct, timeNeeded]
+      properties:
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        Correct:
+          type: array
+          items:
+            type: integer
+        timeNeeded:
+          type: integer
+
+    PublicQuestion:
+      type: object
+      required: [question, options, timeNeeded]
+      properties:
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        timeNeeded:
+          type: integer
+
+    PublicQuestionReturn:
+      allOf:
+        - $ref: '#/components/schemas/PublicQuestion'
+        - type: object
+          required: [isoTimeLastQuestionStarted, lastQuestion]
+          properties:
+            isoTimeLastQuestionStarted:
+              type: string
+              nullable: true
+            lastQuestion:
+              type: boolean
+
+    PlayerAnswer:
+      type: object
+      required: [questionStartedAt, answeredAt, answerIds, correct]
+      properties:
+        questionStartedAt:
+          type: string
+          nullable: true
+        answeredAt:
+          type: string
+          nullable: true
+        answerIds:
+          type: array
+          items:
+            type: integer
+        correct:
+          type: boolean
+
+    Player:
+      type: object
+      required: [name, answers]
+      properties:
+        name:
+          type: string
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerAnswer'
+
+    QuizListItem:
+      type: object
+      required:
+        [
+          id,
+          name,
+          owner,
+          createdAt,
+          thumbnail,
+          active,
+          oldSessions,
+          numQuestions,
+        ]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        owner:
+          type: string
+        createdAt:
+          type: string
+        thumbnail:
+          type: string
+          nullable: true
+        active:
+          type: integer
+          nullable: true
+        oldSessions:
+          type: array
+          items:
+            type: integer
+        numQuestions:
+          type: integer
+
+    Quiz:
+      type: object
+      required:
+        [name, owner, questions, thumbnail, active, oldSessions, createdAt]
+      properties:
+        name:
+          type: string
+        owner:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+        thumbnail:
+          type: string
+          nullable: true
+        active:
+          type: integer
+          nullable: true
+        oldSessions:
+          type: array
+          items:
+            type: integer
+        createdAt:
+          type: string
+
+    SessionStatus:
+      type: object
+      required:
+        [
+          active,
+          answerAvailable,
+          isoTimeLastQuestionStarted,
+          position,
+          questions,
+          players,
+        ]
+      properties:
+        active:
+          type: boolean
+        answerAvailable:
+          type: boolean
+        isoTimeLastQuestionStarted:
+          type: string
+          nullable: true
+        position:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+        players:
+          type: array
+          items:
+            type: string
+
 security:
   - bearerAuth: []
 
@@ -98,6 +259,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
         '403':
           description: Invalid or missing token
           content:
@@ -119,7 +281,7 @@ paths:
                   quizzes:
                     type: array
                     items:
-                      type: object
+                      $ref: '#/components/schemas/QuizListItem'
         '403':
           description: Unauthorized
           content:
@@ -176,7 +338,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/Quiz'
         '403':
           description: Unauthorized
           content:
@@ -196,10 +358,12 @@ paths:
                   type: string
                 thumbnail:
                   type: string
+                description:
+                  type: string
                 questions:
                   type: array
                   items:
-                    type: object
+                    $ref: '#/components/schemas/Question'
       responses:
         '200':
           description: Quiz updated
@@ -207,6 +371,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
         '403':
           description: Unauthorized
           content:
@@ -222,6 +387,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
         '403':
           description: Unauthorized
           content:
@@ -245,6 +411,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
         '400':
           description: Quiz already has active session
           content:
@@ -306,6 +473,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
         '400':
           description: No active session
           content:
@@ -337,7 +505,7 @@ paths:
                 type: object
                 properties:
                   results:
-                    type: object
+                    $ref: '#/components/schemas/SessionStatus'
         '403':
           description: Unauthorized
           content:
@@ -365,7 +533,7 @@ paths:
                   results:
                     type: array
                     items:
-                      type: object
+                      $ref: '#/components/schemas/Player'
         '400':
           description: Session still active
           content:
@@ -456,7 +624,7 @@ paths:
                 type: object
                 properties:
                   question:
-                    type: object
+                    $ref: '#/components/schemas/PublicQuestionReturn'
         '400':
           description: Session not started
           content:
@@ -514,6 +682,7 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: false
         '400':
           description: Invalid submission
           content:
@@ -539,7 +708,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
+                  $ref: '#/components/schemas/PlayerAnswer'
         '400':
           description: Session still active
           content:

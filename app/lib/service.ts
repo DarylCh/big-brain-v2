@@ -136,7 +136,6 @@ const generateId = (currentList: string[], max = 999999999) => {
 export const getEmailFromAuthorization = (authorization: string) => {
   try {
     const token = authorization.replace('Bearer ', '');
-    console.log('Token extracted: ', token);
     const { email } = jwt.verify(token, JWT_SECRET) as { email: string };
     if (!(email in admins)) {
       throw new AccessError('Email not found in admins list');
@@ -153,7 +152,9 @@ export const login = async (email: string, password: string) =>
     if (email in admins) {
       if (admins[email].password === password) {
         admins[email].sessionActive = true;
-        return jwt.sign({ email }, JWT_SECRET, { algorithm: 'HS256' });
+        return jwt.sign({ email, name: admins[email].name }, JWT_SECRET, {
+          algorithm: 'HS256',
+        });
       }
     }
     throw new InputError('Invalid username or password');
@@ -174,7 +175,7 @@ export const register = async (email: string, password: string, name: string) =>
       password,
       sessionActive: true,
     };
-    return jwt.sign({ email }, JWT_SECRET, { algorithm: 'HS256' });
+    return jwt.sign({ email, name }, JWT_SECRET, { algorithm: 'HS256' });
   });
 
 /***************************************************************
@@ -184,6 +185,8 @@ export const register = async (email: string, password: string, name: string) =>
 const newQuizPayload = (name: string, owner: string): Quiz => ({
   name,
   owner,
+  description: null,
+  defaultQuestionDuration: null,
   questions: [],
   thumbnail: null,
   active: null,
@@ -219,7 +222,6 @@ export const addQuiz = async (name: string, email: string) =>
     } else {
       const newId = newQuizId();
       quizzes[newId] = newQuizPayload(name, email);
-      console.log('quzzies after addition: ', quizzes);
       return newId;
     }
   });
@@ -234,7 +236,9 @@ export const updateQuiz = async (
   quizId: string,
   questions?: Question[],
   name?: string,
-  thumbnail?: string
+  thumbnail?: string,
+  description?: string,
+  defaultQuestionDuration?: number | null
 ) =>
   await mutateLock(() => {
     if (questions) {
@@ -245,6 +249,12 @@ export const updateQuiz = async (
     }
     if (thumbnail) {
       quizzes[quizId].thumbnail = thumbnail;
+    }
+    if (description !== undefined) {
+      quizzes[quizId].description = description;
+    }
+    if (defaultQuestionDuration !== undefined) {
+      quizzes[quizId].defaultQuestionDuration = defaultQuestionDuration;
     }
   });
 
@@ -332,7 +342,6 @@ const getInactiveSessionsIdFromQuizId = (quizId: string) =>
 
 const getActiveSessionFromSessionId = (sessionId: string) => {
   if (sessionId in sessions) {
-    console.log('1');
     if (sessions[sessionId].active) {
       return sessions[sessionId];
     }
@@ -409,7 +418,6 @@ export const playerJoin = async (name: string, sessionId: string) =>
       } else {
         const id = newPlayerId();
         session.players[id] = newPlayerPayload(name, session.questions.length);
-        console.log('sessions after player join: ', sessions);
         return parseInt(id, 10);
       }
     }
@@ -419,7 +427,6 @@ export const hasStarted = (playerId: string) => {
   const session = getActiveSessionFromSessionId(
     sessionIdFromPlayerId(playerId)
   );
-  console.log('active session: ', session);
   if (session.isoTimeLastQuestionStarted !== null) {
     return true;
   } else {
@@ -447,7 +454,6 @@ export const getAnswers = (playerId: string) => {
   const session = getActiveSessionFromSessionId(
     sessionIdFromPlayerId(playerId)
   );
-  console.log('activeSession: ', session);
   if (session.position === -1) {
     throw new InputError('Session has not started yet');
   } else if (!isAnswerAvailable(session)) {

@@ -10,23 +10,24 @@ import {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { playerid: string } }
+  { params }: { params: Promise<{ playerid: string }> }
 ) {
   // Determine which endpoint based on the URL
   const url = request.nextUrl.pathname;
 
   try {
+    const { playerid } = await params;
     if (url.includes('/status')) {
-      const started = hasStarted(params.playerid);
+      const started = hasStarted(playerid);
       return NextResponse.json({ started });
     } else if (url.includes('/question')) {
-      const question = getQuestion(params.playerid);
+      const question = getQuestion(playerid);
       return NextResponse.json({ question });
     } else if (url.includes('/answer')) {
-      const answerIds = getAnswers(params.playerid);
+      const answerIds = getAnswers(playerid);
       return NextResponse.json({ answerIds });
     } else if (url.includes('/results')) {
-      const result = getResults(params.playerid);
+      const result = getResults(playerid);
       return NextResponse.json(result);
     }
   } catch (error: unknown) {
@@ -42,11 +43,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { playerid: string } }
+  { params }: { params: Promise<{ playerid: string }> }
 ) {
   try {
     const { answerIds } = await request.json();
-    await submitAnswers(params.playerid, answerIds);
+    const { playerid } = await params;
+    await submitAnswers(playerid, answerIds);
     return NextResponse.json({});
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'InputError') {

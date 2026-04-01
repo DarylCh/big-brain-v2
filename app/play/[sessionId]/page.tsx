@@ -1,15 +1,14 @@
 'use client';
-import { Box, Button, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import AdminNavBar from '@/app/components/AdminNavBar';
 import { GroupDiv } from '@/app/home/_components/Dashboard';
-import { OptionBox } from './_components/OptionBox';
-import TimerBar from './_components/TimerBar';
 import { PublicQuestionReturn } from '@/app/api/play/[playerid]/question/route';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/app/lib/apiClient';
-import { primaryColor } from '@/app/lib/colors';
+import LobbyView from './_components/LobbyView';
+import GameView from './_components/GameView';
 
 type HasStartedResponse = { started: boolean };
 
@@ -20,6 +19,7 @@ export default function SessionPage({
 }) {
   const { sessionId } = use(params);
   const playerId = useSearchParams().get('playerId') ?? '';
+  const playerName = useSearchParams().get('name') ?? '';
   const [gameStarted, setGameStarted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number[]>([]);
@@ -30,31 +30,22 @@ export default function SessionPage({
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [correctAnswer, setCorrectAnswer] = useState<number[] | null>(null);
   const [gameEnded, setGameEnded] = useState(false);
+  const [questionNumber, setQuestionNumber] = useState(0);
   const router = useRouter();
   const timeUpRef = useRef<Date | null>(null);
 
   const hasGameStarted = useCallback(
     async (playerId: string): Promise<HasStartedResponse> => {
-      const response = await fetch(`/api/play/${playerId}/status`, {
-        cache: 'no-store',
-      });
-      if (!response.ok) {
-        throw new Error('Client - Failed to retrieve session details');
-      }
-      return response.json() as Promise<HasStartedResponse>;
+      const response = await apiClient.getPlayerStatus(playerId);
+      return response;
     },
     []
   );
 
   const retrieveCurrentQuestion = useCallback(
     async (playerId: string): Promise<{ question: PublicQuestionReturn }> => {
-      const response = await fetch(`/api/play/${playerId}/question`, {
-        cache: 'no-store',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to retrieve session details');
-      }
-      return response.json() as Promise<{ question: PublicQuestionReturn }>;
+      const response = await apiClient.getPlayerQuestion(playerId);
+      return response;
     },
     []
   );
@@ -108,6 +99,7 @@ export default function SessionPage({
     );
     timeUpRef.current = deadline;
     setCurrentQuestion(res.question);
+    setQuestionNumber((n) => n + 1);
     setCorrectAnswer(null);
     setSelected([]);
     setAnswerSubmitted(false);
@@ -125,7 +117,6 @@ export default function SessionPage({
   };
 
   const submitAnswer = useCallback(async () => {
-    console.log('Submitting answer: ', selected);
     if (selected.length === 0) {
       return;
     }
@@ -136,9 +127,6 @@ export default function SessionPage({
 
     setAnswerSubmitted(true);
   }, [playerId, selected]);
-
-  const buttonColor = (correct: boolean, selected: boolean) =>
-    correct ? 'green' : selected ? primaryColor : 'grey';
 
   // check whether the game has started yet
   useEffect(() => {
@@ -215,111 +203,30 @@ export default function SessionPage({
               flexDirection: 'column',
               alignItems: 'center',
               gap: '20px',
+              width: '100%',
             }}
           >
-            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-              Game Lobby
-            </Typography>
-            {(loading || loadingQuestion) && <CircularProgress />}
-            {!loading && !gameStarted && (
-              <Typography variant="h6" color="textSecondary">
-                Sit tight! The host should be starting the game soon...
-              </Typography>
+            {(loading || loadingQuestion) && !currentQuestion && (
+              <CircularProgress />
+            )}
+            {!gameStarted && (
+              <LobbyView playerName={playerName} loading={loading} />
             )}
             {!!currentQuestion && (
-              <>
-                <Box
-                  sx={{
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <Typography
-                    variant="h4"
-                    fontStyle="initial"
-                    fontWeight="bold"
-                    color={primaryColor}
-                  >
-                    {currentQuestion?.question ?? ''}
-                  </Typography>
-                  {answerSubmitted && !correctAnswer && (
-                    <Typography variant="subtitle1" color="textSecondary">
-                      Answer submitted, waiting for time to run out
-                    </Typography>
-                  )}
-                  {correctAnswer && (
-                    <>
-                      <Typography variant="body1" color="textSecondary">
-                        {[...correctAnswer].sort().join() ===
-                        [...selected].sort().join()
-                          ? 'Correct! Great job'
-                          : 'Incorrect, better luck next time!'}
-                      </Typography>
-                    </>
-                  )}
-                </Box>
-                <TimerBar
-                  startedAtMs={new Date(
-                    currentQuestion?.isoTimeLastQuestionStarted ?? ''
-                  ).getTime()}
-                  durationMs={(currentQuestion?.timeNeeded ?? 10) * 1000}
-                />
-                <Box
-                  width="100%"
-                  display="grid"
-                  gridTemplateColumns="1fr 1fr"
-                  gap="16px"
-                  rowGap="2px"
-                >
-                  {currentQuestion?.options.map(
-                    (option: string, index: number) => (
-                      <OptionBox
-                        key={index}
-                        onClick={() => selectOption(index)}
-                        isCorrect={correctAnswer?.includes(index) ?? false}
-                        sx={{
-                          backgroundColor: buttonColor(
-                            correctAnswer?.includes(index) ?? false,
-                            correctAnswer === null && selected.includes(index)
-                          ),
-                        }}
-                      >
-                        {option}
-                      </OptionBox>
-                    )
-                  )}
-                </Box>
-                {correctAnswer === null && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => void submitAnswer()}
-                    disabled={
-                      !gameStarted ||
-                      answerSubmitted ||
-                      correctAnswer !== null ||
-                      selected.length === 0
-                    }
-                  >
-                    Submit
-                  </Button>
-                )}
-                {gameEnded && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() =>
-                      router.push(
-                        `/play/${sessionId}/results?playerId=${playerId}`
-                      )
-                    }
-                  >
-                    View Results
-                  </Button>
-                )}
-              </>
+              <GameView
+                currentQuestion={currentQuestion}
+                questionNumber={questionNumber}
+                selected={selected}
+                answerSubmitted={answerSubmitted}
+                correctAnswer={correctAnswer}
+                gameStarted={gameStarted}
+                gameEnded={gameEnded}
+                onSelectOption={selectOption}
+                onSubmitAnswer={() => void submitAnswer()}
+                onViewResults={() =>
+                  router.push(`/play/${sessionId}/results?playerId=${playerId}`)
+                }
+              />
             )}
           </Box>
         </GroupDiv>

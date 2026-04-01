@@ -33,11 +33,9 @@ const Dashboard = () => {
   const [isClicked, setisClicked] = useState(true);
   const [popup, setPopup] = useState(false);
   const [desc, setDesc] = useState('');
-  const [changed, setChanged] = useState(false);
 
   // This function allows the popup to be triggered
   const activatePopup = () => {
-    console.log(desc);
     setPopup(!popup);
   };
 
@@ -81,8 +79,6 @@ const Dashboard = () => {
         <CreateQuiz
           activatePopup={() => activatePopup()}
           activateClicked={() => changeClicked()}
-          changed={changed}
-          setChanged={setChanged}
           setDesc={setDesc}
         />
       </Box>

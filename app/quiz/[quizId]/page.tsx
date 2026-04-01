@@ -6,7 +6,6 @@ import NewQuestionForm from '../_components/NewQuestionForm';
 import { useRouter } from 'next/navigation';
 import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
 import QuizDetailCard from './_components/QuizDetailCard';
-import SessionsPanel from './_components/SessionsPanel';
 import { Question } from '@/app/lib/types';
 import { useUser } from '@/app/lib/UserContext';
 
@@ -71,11 +70,6 @@ export default function QuizDetailsPage({
         onMutated={refetch}
         onDelete={() => router.back()}
         onAddQuestion={() => setFormOpen(true)}
-      />
-      <SessionsPanel
-        quiz={quiz}
-        token={token}
-        quizId={quizId}
         onAdvance={() => void advanceQuiz()}
       />
       <NewQuestionForm
