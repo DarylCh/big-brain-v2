@@ -13,6 +13,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.9",
+    "@mui/x-charts": "^8.28.0",
     "async-lock": "^1.4.1",
     "jsonwebtoken": "^9.0.3",
     "next": "16.2.1",

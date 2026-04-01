@@ -208,7 +208,7 @@ export default function SessionPage({
         </nav>
       </header>
       <main>
-        <GroupDiv>
+        <GroupDiv style={{ marginTop: '100px' }}>
           <Box
             style={{
               display: 'flex',

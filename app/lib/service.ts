@@ -40,7 +40,6 @@ const update = async (
 ): Promise<void> => {
   await lock.acquire('saveData', async () => {
     try {
-      console.log('Saving to database: ', { admins, quizzes, sessions });
       fs.writeFileSync(
         DATABASE_FILE,
         JSON.stringify(

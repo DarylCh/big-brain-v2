@@ -17,7 +17,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState('');
 
   useEffect(() => {
-    setTokenState(localStorage.getItem('token') ?? '');
+    const retrieveAndStoreToken = () => {
+      setTokenState(localStorage.getItem('token') ?? '');
+    };
+
+    retrieveAndStoreToken();
   }, []);
 
   const setToken = (token: string) => {
