@@ -1,3 +1,22 @@
+# BigBrain
+
+BigBrain is a real-time multiplayer quiz platform. Admins create and manage quizzes, host live game sessions, and review results. Players join sessions via a session ID, answer timed questions in real time, and see their results at the end.
+
+**Admin features:**
+- Register/login to manage your quizzes
+- Create quizzes and add multiple-choice questions with configurable time limits
+- Start, advance, and stop live quiz sessions
+- View per-session results with a bar chart of player scores
+
+**Player features:**
+- Join a session by entering a session ID and a display name
+- Answer timed questions with one or more correct options
+- See correct answers after each question and a full results breakdown at the end
+
+Built with Next.js 15 (App Router), TypeScript, and Material UI.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
