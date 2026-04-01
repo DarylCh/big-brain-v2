@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import AdminNavBar from '@/app/components/AdminNavBar';
+import AppNavBar from '@/app/components/AppNavBar';
 import { GroupDiv } from '@/app/home/_components/Dashboard';
 import { apiClient } from '@/app/lib/apiClient';
 import { primaryColor } from '@/app/lib/colors';
@@ -22,7 +22,8 @@ export default function ResultsPage() {
     const fetch = async () => {
       try {
         const res = await apiClient.getPlayerResults(playerId);
-        setAnswers(res as unknown as PlayerAnswer[]);
+        console.log('RES: ', res);
+        setAnswers(res);
       } finally {
         setLoading(false);
       }
@@ -34,11 +35,7 @@ export default function ResultsPage() {
 
   return (
     <>
-      <header>
-        <nav>
-          <AdminNavBar />
-        </nav>
-      </header>
+      <AppNavBar />
       <main>
         <GroupDiv>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -73,6 +70,14 @@ export default function ResultsPage() {
                       )}
                       <Typography variant="body1" fontWeight="bold">
                         Question {i + 1}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        You answered:{' '}
+                        {answer.answerIds.length > 0
+                          ? answer.answerIds
+                              .map((id) => String.fromCharCode(65 + id))
+                              .join(', ')
+                          : 'No answer'}
                       </Typography>
                       <Typography
                         variant="body2"

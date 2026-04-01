@@ -10,7 +10,7 @@ import {
 import FullButton from '../components/FullButton';
 import { navLinkStyle } from '../components/AdminNavBar';
 import Link from 'next/link';
-import NavBar from '../components/NavBar';
+import AppNavBar from '../components/AppNavBar';
 import { FormControl, TextField } from '@mui/material';
 import { apiClient } from '@/app/lib/apiClient';
 import { useUser } from '@/app/lib/UserContext';
@@ -37,11 +37,7 @@ const RegisterPage = () => {
 
   return (
     <>
-      <header>
-        <nav>
-          <NavBar></NavBar>
-        </nav>
-      </header>
+      <AppNavBar />
       <div id="register-form" style={LoginRegBackgroundStyle}>
         <h3 style={TitleStyle}>Admin Registration</h3>
         <FormControl

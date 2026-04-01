@@ -1,32 +1,19 @@
 'use client';
-import { useRef, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Box, Button, IconButton, Tab, Tabs, Typography } from '@mui/material';
+import { useRef, useMemo } from 'react';
+import { Box, IconButton, Typography } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import Image from 'next/image';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import CircleIconButton from '@/app/components/CircleIconButton';
-import ConfirmDialog from '../../_components/ConfirmDialog';
-import EditQuizDetailsForm from './EditQuizDetailsForm';
-import QuestionsTable from './QuestionsTable';
-import ActiveSessionBanner from './ActiveSessionBanner';
-import SessionsTable from './SessionsTable';
+import BackButton from '@/app/components/BackButton';
 import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
-import { primaryColor, primaryHoverColor } from '@/app/lib/colors';
-import { GroupDiv } from '@/app/home/_components/Dashboard';
+import { primaryColor } from '@/app/lib/colors';
 
 interface Props {
   quiz: AdminGetQuizResponse | null;
   quizId: string;
   token: string;
   onMutated: () => void;
-  onDelete: () => void;
-  onAddQuestion: () => void;
-  onAdvance: () => void;
+  onEditOpen: () => void;
 }
 
 export default function QuizDetailCard({
@@ -34,31 +21,17 @@ export default function QuizDetailCard({
   quizId,
   token,
   onMutated,
-  onDelete,
-  onAddQuestion,
-  onAdvance,
+  onEditOpen,
 }: Props) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [startOpen, setStartOpen] = useState(false);
-  const [stopOpen, setStopOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [tab, setTab] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
-  const saveDetails = async (name: string, description: string) => {
-    await apiClient.updateQuiz(token, quizId, { name, description });
-    setEditOpen(false);
-    onMutated();
-  };
-
-  const deleteQuestion = async (index: number) => {
-    const updated = (quiz?.questions ?? []).filter(
-      (_question, i) => i !== index
-    );
-    await apiClient.updateQuiz(token, quizId, { questions: updated });
-    onMutated();
-  };
+  const isValidThumbnail = useMemo(
+    () =>
+      /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/.test(
+        quiz?.thumbnail ?? ''
+      ),
+    [quiz?.thumbnail]
+  );
 
   const uploadThumbnail = async (file: File) => {
     const reader = new FileReader();
@@ -70,53 +43,23 @@ export default function QuizDetailCard({
     reader.readAsDataURL(file);
   };
 
-  const deleteQuiz = async () => {
-    await apiClient.deleteQuiz(token, quizId);
-    onDelete();
-  };
-
-  const startQuiz = async () => {
-    await apiClient.startQuiz(token, quizId);
-    onMutated();
-  };
-
-  const stopQuiz = async () => {
-    await apiClient.endQuiz(token, quizId);
-    onMutated();
-  };
-
-  const isActive = !!quiz?.active;
-  const isValidThumbnail = useMemo(
-    () =>
-      /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/.test(
-        quiz?.thumbnail ?? ''
-      ),
-    [quiz?.thumbnail]
+  const totalQuestions = quiz?.questions.length ?? 0;
+  const totalTime = useMemo(
+    () => quiz?.questions.reduce((sum, q) => sum + q.timeNeeded, 0) ?? 0,
+    [quiz?.questions]
   );
 
   return (
-    <GroupDiv style={{ padding: 0, width: '100%' }}>
+    <>
+      <BackButton sx={{ marginTop: '20px', marginLeft: '20px' }} href="/home" />
       <Box
         style={{
           padding: '30px',
-          backgroundColor: '#fafafa',
           display: 'flex',
           gap: '2px',
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ mt: 0, mb: 1 }}>
-          <IconButton
-            size="small"
-            onClick={() => router.push('/home')}
-            sx={{
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' },
-            }}
-          >
-            <ArrowBackIcon fontSize="small" />
-          </IconButton>
-        </Box>
         <Box
           style={{
             display: 'flex',
@@ -203,7 +146,7 @@ export default function QuizDetailCard({
               </Typography>
               <IconButton
                 size="small"
-                onClick={() => setEditOpen(true)}
+                onClick={onEditOpen}
                 sx={{ color: primaryColor }}
               >
                 <EditIcon fontSize="small" />
@@ -217,116 +160,12 @@ export default function QuizDetailCard({
               {quiz?.description ?? 'No description provided'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {`Quiz by Daryl · ${(quiz?.questions?.length ?? 0) > 0 ? quiz!.questions.length : 'No'} questions`}
-              {(quiz?.questions?.length ?? 0) > 0 && (
-                <>
-                  {' '}
-                  · {quiz!.questions.reduce((sum, q) => sum + q.timeNeeded, 0)}s
-                  total
-                </>
-              )}
+              {`Quiz by Daryl · ${totalQuestions > 0 ? totalQuestions : 'No'} questions`}
+              {totalQuestions > 0 && <> · {totalTime}s total</>}
             </Typography>
           </Box>
         </Box>
       </Box>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          padding: '16px 20px',
-          alignItems: 'center',
-        }}
-      >
-        <div>
-          <Button
-            variant="contained"
-            startIcon={isActive ? <StopIcon /> : <PlayArrowIcon />}
-            onClick={() => (isActive ? setStopOpen(true) : setStartOpen(true))}
-            sx={{
-              backgroundColor: primaryColor,
-              '&:hover': {
-                backgroundColor: primaryHoverColor,
-              },
-              marginLeft: '12px',
-            }}
-          >
-            {isActive ? 'End Session' : 'Start Session'}
-          </Button>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '10px',
-            alignItems: 'center',
-          }}
-        >
-          <CircleIconButton onClick={() => setEditOpen(true)}>
-            <EditIcon />
-          </CircleIconButton>
-          <CircleIconButton onClick={() => setConfirmOpen(true)}>
-            <DeleteIcon />
-          </CircleIconButton>
-        </div>
-      </div>
-      <EditQuizDetailsForm
-        open={editOpen}
-        initialName={quiz?.name ?? ''}
-        initialDescription={quiz?.description ?? ''}
-        onClose={() => setEditOpen(false)}
-        onSave={saveDetails}
-      />
-      <ConfirmDialog
-        open={confirmOpen}
-        setOpen={setConfirmOpen}
-        variant="delete"
-        onConfirm={() => void deleteQuiz()}
-      />
-      <ConfirmDialog
-        open={startOpen}
-        setOpen={setStartOpen}
-        variant="start"
-        onConfirm={() => void startQuiz()}
-      />
-      <ConfirmDialog
-        open={stopOpen}
-        setOpen={setStopOpen}
-        variant="stop"
-        onConfirm={() => void stopQuiz()}
-      />
-      <ActiveSessionBanner
-        quiz={quiz}
-        token={token}
-        quizId={quizId}
-        onAdvance={onAdvance}
-      />
-      <Tabs
-        value={tab}
-        onChange={(_, v: number) => setTab(v)}
-        sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}
-        TabIndicatorProps={{ style: { backgroundColor: primaryColor } }}
-      >
-        <Tab
-          label="Questions"
-          sx={{ '&.Mui-selected': { color: primaryColor } }}
-        />
-        <Tab
-          label={`Sessions (${quiz?.oldSessions?.length ?? 0})`}
-          sx={{ '&.Mui-selected': { color: primaryColor } }}
-        />
-      </Tabs>
-      {tab === 0 && (
-        <QuestionsTable
-          questions={quiz?.questions ?? []}
-          onAddQuestion={onAddQuestion}
-          onDeleteQuestion={(i) => void deleteQuestion(i)}
-          disabled={isActive}
-        />
-      )}
-      {tab === 1 && (
-        <SessionsTable oldSessions={quiz?.oldSessions ?? []} quizId={quizId} />
-      )}
-    </GroupDiv>
+    </>
   );
 }

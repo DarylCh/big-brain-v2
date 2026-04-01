@@ -2,7 +2,7 @@
 import { use, useEffect, useState } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
-import AdminNavBar from '@/app/components/AdminNavBar';
+import AppNavBar from '@/app/components/AppNavBar';
 import { GroupDiv } from '@/app/home/_components/Dashboard';
 import { useUser } from '@/app/lib/UserContext';
 import { apiClient } from '@/app/lib/apiClient';
@@ -36,11 +36,7 @@ export default function SessionResultsPage({
 
   return (
     <>
-      <header>
-        <nav>
-          <AdminNavBar />
-        </nav>
-      </header>
+      <AppNavBar />
       <main>
         <GroupDiv>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

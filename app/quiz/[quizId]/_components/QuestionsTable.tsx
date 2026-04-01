@@ -19,7 +19,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FullButton from '@/app/components/FullButton';
-import QuestionOptionsList from '../../_components/QuestionOptionsList';
+import QuestionOptionsList from './QuestionOptionsList';
 import { Question } from '@/app/lib/types';
 
 export default function QuestionsTable({
@@ -44,7 +44,12 @@ export default function QuestionsTable({
   const toggleRow = (index: number) => {
     setExpandedRows((prev) => {
       const next = new Set(prev);
-      next.has(index) ? next.delete(index) : next.add(index);
+
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
       return next;
     });
   };

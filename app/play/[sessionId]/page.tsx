@@ -1,8 +1,7 @@
 'use client';
 import { Box } from '@mui/material';
-import CircularProgress from '@mui/material/CircularProgress';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
-import AdminNavBar from '@/app/components/AdminNavBar';
+import AppNavBar from '@/app/components/AppNavBar';
 import { GroupDiv } from '@/app/home/_components/Dashboard';
 import { PublicQuestionReturn } from '@/app/api/play/[playerid]/question/route';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -21,7 +20,7 @@ export default function SessionPage({
   const playerId = useSearchParams().get('playerId') ?? '';
   const playerName = useSearchParams().get('name') ?? '';
   const [gameStarted, setGameStarted] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const [selected, setSelected] = useState<number[]>([]);
   const [refetchQuestion, setRefetchQuestion] = useState(false);
   const [currentQuestion, setCurrentQuestion] =
@@ -61,10 +60,8 @@ export default function SessionPage({
   // useEffect to control time and answer submission
   useEffect(() => {
     let timeOut: NodeJS.Timeout | null = null;
-    if (gameStarted) {
-      const remainingTimeMs = timeUpRef.current
-        ? timeUpRef.current.getTime() - Date.now()
-        : 0;
+    if (gameStarted && timeUpRef.current) {
+      const remainingTimeMs = timeUpRef.current.getTime() - Date.now();
       timeOut = setTimeout(
         () => {
           void retrieveAndDisplayCorrectAnswer(playerId);
@@ -131,9 +128,9 @@ export default function SessionPage({
   // check whether the game has started yet
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    const retrieveInfo = async () => {
+    const retrieveGameStatus = async () => {
       try {
-        setLoading(true);
+        setLoadingStatus(true);
         const response = await hasGameStarted(playerId);
         setGameStarted(response.started);
 
@@ -141,16 +138,16 @@ export default function SessionPage({
           clearInterval(interval);
         }
       } catch (error) {
-        console.error('Error retrieving session info: ', error);
+        console.error('Error retrieving game status: ', error);
         clearInterval(interval);
       } finally {
-        setLoading(false);
+        setLoadingStatus(false);
       }
     };
 
     if (sessionId !== '') {
       interval = setInterval(() => {
-        void retrieveInfo();
+        void retrieveGameStatus();
       }, 500);
     }
 
@@ -160,7 +157,7 @@ export default function SessionPage({
   useEffect(() => {
     const retrieveQuestion = async () => {
       try {
-        if (!loading) {
+        if (!loadingStatus) {
           await fetchNextQuestion();
         }
       } finally {
@@ -168,10 +165,16 @@ export default function SessionPage({
       }
     };
 
-    if (!loading && gameStarted) {
+    if (!loadingStatus && gameStarted) {
       void retrieveQuestion();
     }
-  }, [gameStarted, loading, refetchQuestion, playerId, fetchNextQuestion]);
+  }, [
+    gameStarted,
+    loadingStatus,
+    refetchQuestion,
+    playerId,
+    fetchNextQuestion,
+  ]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -190,15 +193,12 @@ export default function SessionPage({
 
   return (
     <>
-      <header>
-        <nav>
-          <AdminNavBar />
-        </nav>
-      </header>
+      <AppNavBar />
       <main>
         <GroupDiv style={{ marginTop: '100px' }}>
           <Box
             style={{
+              padding: '20px 0',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -206,11 +206,11 @@ export default function SessionPage({
               width: '100%',
             }}
           >
-            {(loading || loadingQuestion) && !currentQuestion && (
-              <CircularProgress />
-            )}
             {!gameStarted && (
-              <LobbyView playerName={playerName} loading={loading} />
+              <LobbyView
+                playerName={playerName}
+                loading={loadingStatus || loadingQuestion}
+              />
             )}
             {!!currentQuestion && (
               <GameView

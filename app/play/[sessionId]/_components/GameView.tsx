@@ -4,6 +4,7 @@ import { PublicQuestionReturn } from '@/app/api/play/[playerid]/question/route';
 import { OptionBox } from './OptionBox';
 import TimerBar from './TimerBar';
 import { primaryColor } from '@/app/lib/colors';
+import { useMemo } from 'react';
 
 type GameViewProps = {
   currentQuestion: PublicQuestionReturn;
@@ -33,6 +34,18 @@ export default function GameView({
   onSubmitAnswer,
   onViewResults,
 }: GameViewProps) {
+  const subTitleText = useMemo(() => {
+    return gameEnded
+      ? 'The game has ended. Please follow the link below to view results!'
+      : correctAnswer !== null
+        ? [...correctAnswer].sort().join() === [...selected].sort().join()
+          ? 'Correct! Great job'
+          : 'Incorrect, better luck next time!'
+        : answerSubmitted
+          ? 'Answer submitted, waiting for time to run out'
+          : 'Select your answer and submit before time runs out!';
+  }, [correctAnswer, selected, answerSubmitted, gameEnded]);
+
   return (
     <Box
       sx={{
@@ -75,21 +88,9 @@ export default function GameView({
             Question {questionNumber}: {currentQuestion.question}
           </Typography>
         </Box>
-        <Typography variant="body2" color="textSecondary">
-          Select your answer below
+        <Typography marginTop="16px" variant="subtitle1" color="textSecondary">
+          {subTitleText}
         </Typography>
-        {answerSubmitted && !correctAnswer && (
-          <Typography variant="subtitle1" color="textSecondary">
-            Answer submitted, waiting for time to run out
-          </Typography>
-        )}
-        {correctAnswer && (
-          <Typography marginTop="16px" variant="body1" color="textSecondary">
-            {[...correctAnswer].sort().join() === [...selected].sort().join()
-              ? 'Correct! Great job'
-              : 'Incorrect, better luck next time!'}
-          </Typography>
-        )}
       </Box>
       <TimerBar
         startedAtMs={new Date(

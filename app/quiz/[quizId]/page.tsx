@@ -1,11 +1,12 @@
 'use client';
 import { use, useState, useEffect } from 'react';
 import ErrorPopup from '../../components/ErrorPopup';
-import AdminNavBar from '@/app/components/AdminNavBar';
-import NewQuestionForm from '../_components/NewQuestionForm';
+import AppNavBar from '@/app/components/AppNavBar';
+import NewQuestionForm from './_components/NewQuestionForm';
+import EditQuizDetailsForm from './_components/EditQuizDetailsForm';
 import { useRouter } from 'next/navigation';
 import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
-import QuizDetailCard from './_components/QuizDetailCard';
+import QuizPanel from './_components/QuizPanel';
 import { Question } from '@/app/lib/types';
 import { useUser } from '@/app/lib/UserContext';
 
@@ -23,6 +24,13 @@ export default function QuizDetailsPage({
   const [desc] = useState('');
   const [popup, setPopup] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const saveDetails = async (name: string, description: string) => {
+    await apiClient.updateQuiz(token, quizId, { name, description });
+    setEditOpen(false);
+    refetch();
+  };
 
   const activatePopup = () => {
     setPopup(!popup);
@@ -58,12 +66,8 @@ export default function QuizDetailsPage({
 
   return (
     <>
-      <header>
-        <nav>
-          <AdminNavBar />
-        </nav>
-      </header>
-      <QuizDetailCard
+      <AppNavBar />
+      <QuizPanel
         quiz={quiz}
         quizId={quizId}
         token={token}
@@ -71,12 +75,20 @@ export default function QuizDetailsPage({
         onDelete={() => router.back()}
         onAddQuestion={() => setFormOpen(true)}
         onAdvance={() => void advanceQuiz()}
+        onEditOpen={() => setEditOpen(true)}
       />
       <NewQuestionForm
         gameId={quizId}
         open={formOpen}
         setOpen={setFormOpen}
         updateQuestions={updateQuestions}
+      />
+      <EditQuizDetailsForm
+        open={editOpen}
+        initialName={quiz?.name ?? ''}
+        initialDescription={quiz?.description ?? ''}
+        onClose={() => setEditOpen(false)}
+        onSave={saveDetails}
       />
       {popup && <ErrorPopup title="Error" desc={desc} toggle={activatePopup} />}
     </>

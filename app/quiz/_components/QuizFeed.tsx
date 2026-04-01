@@ -9,7 +9,6 @@ import { GroupDiv } from '../../home/_components/Dashboard';
 import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
 import { apiClient, QuizListItem } from '@/app/lib/apiClient';
-import { Quiz } from '@/app/lib/types';
 import QuizCard from './QuizCard';
 import { useUser } from '@/app/lib/UserContext';
 

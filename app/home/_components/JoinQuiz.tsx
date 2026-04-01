@@ -83,7 +83,7 @@ const JoinQuiz = ({
       <Title>Got a game code?</Title>
       <FormControl
         aria-label="join-game-form"
-        style={{ width: '100%', gap: '10px' }}
+        style={{ width: '100%', gap: '5px' }}
       >
         <TextField
           id="game-title"

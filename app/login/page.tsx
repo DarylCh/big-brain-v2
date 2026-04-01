@@ -1,15 +1,11 @@
 'use client';
 import LoginForm from './components/LoginForm';
-import NavBar from '../components/NavBar';
+import AppNavBar from '../components/AppNavBar';
 
 export function Login() {
   return (
     <>
-      <header>
-        <nav>
-          <NavBar></NavBar>
-        </nav>
-      </header>
+      <AppNavBar />
       <main>
         <LoginForm />
       </main>
