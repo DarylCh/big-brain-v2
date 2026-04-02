@@ -3,7 +3,6 @@ import {
   startQuiz,
   assertOwnsQuiz,
   getEmailFromAuthorization,
-  save,
 } from '@/app/lib/service';
 
 export async function POST(
@@ -22,6 +21,7 @@ export async function POST(
     const { quizid: quizId } = await params;
     assertOwnsQuiz(email, quizId);
     await startQuiz(quizId);
+
     return NextResponse.json({});
   } catch (error: unknown) {
     console.error('Error in POST /api/admin/quiz/[quizid]/start: ', error);

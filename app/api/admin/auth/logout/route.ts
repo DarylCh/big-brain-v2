@@ -5,15 +5,22 @@ export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
-      return NextResponse.json({ error: 'No authorization token' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'No authorization token' },
+        { status: 403 }
+      );
     }
     const email = getEmailFromAuthorization(authHeader);
     await logout(email);
     return NextResponse.json({});
   } catch (error: unknown) {
+    console.error('Error in POST /api/admin/auth/logout:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }

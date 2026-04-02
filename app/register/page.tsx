@@ -32,7 +32,7 @@ const RegisterPage = () => {
   const regFetch = async () => {
     const response = await apiClient.register({ name, email, password });
     setToken(response.token);
-    router.push('/home');
+    router.push('/user');
   };
 
   return (

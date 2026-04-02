@@ -18,7 +18,7 @@ const AppNavBar = () => {
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <div style={navEleStyle}>
                 <span>
-                  <Link id="nav-home" style={navLinkStyle} href="/home">
+                  <Link id="nav-home" style={navLinkStyle} href="/user">
                     Home
                   </Link>
                 </span>

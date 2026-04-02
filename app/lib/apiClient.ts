@@ -134,6 +134,7 @@ const withAuthHeader = (token?: string, contentType = true): HeadersInit => {
     headers['Content-Type'] = 'application/json';
   }
   if (token) {
+    console.log('CALLING WITH TOKEN: ', token);
     headers.Authorization = token;
   }
   return headers;
@@ -433,4 +434,18 @@ export const apiClient = {
         method: 'GET',
       }
     ),
+
+  /**
+   * DELETE /api/admin/delete
+   * Resets all data in the store.
+   * @param token - Admin JWT bearer token
+   * @returns {} - Empty object on success
+   */
+  deleteStore: (token: string) => {
+    console.log('deleteStore called with token: ', token);
+    return requestJson<Record<string, never>>('/api/admin/delete', {
+      method: 'DELETE',
+      headers: withAuthHeader(token, false),
+    });
+  },
 };

@@ -33,7 +33,7 @@ let admins: Admins = {};
 let quizzes: Quizzes = {};
 let sessions: Sessions = {};
 
-const update = async (
+export const update = async (
   admins: Admins,
   quizzes: Quizzes,
   sessions: Sessions
@@ -60,6 +60,11 @@ const update = async (
 };
 
 export const save = async () => await update(admins, quizzes, sessions);
+export const resetQuizzesAndSessions = async () => {
+  await update(admins, {}, {});
+  quizzes = {};
+  sessions = {};
+};
 export const reset = async () => {
   await update({}, {}, {});
   admins = {};
@@ -104,7 +109,6 @@ const isAnswerAvailable = (session: Session) => {
     quizQuestionGetDuration(session.questions[session.position]) * 1000;
   return Date.now() >= startedAtMs + durationMs;
 };
-
 const mutateLock = async <T>(callback: () => T | Promise<T>) => {
   let result: T;
   await lock.acquire('sessionMutateLock', async () => {
@@ -267,11 +271,13 @@ export const startQuiz = async (quizId: string) =>
   await mutateLock(() => {
     if (quizHasActiveSession(quizId)) {
       throw new InputError('Quiz already has active session');
-    } else {
-      const id = newSessionId();
-      sessions[id] = newSessionPayload(quizId);
-      return id;
     }
+    if (!quizzes[quizId].questions.length) {
+      throw new InputError('Cannot start a quiz with no questions');
+    }
+    const id = newSessionId();
+    sessions[id] = newSessionPayload(quizId);
+    return id;
   });
 
 export const advanceQuiz = async (quizId: string) =>
@@ -283,12 +289,15 @@ export const advanceQuiz = async (quizId: string) =>
     const { session } = sessionObject;
     if (!session.active) {
       throw new InputError('Cannot advance a quiz that is not active');
+    }
+    if (Object.keys(session.players).length === 0) {
+      throw new InputError('Cannot advance a session with no players');
     } else {
       const totalQuestions = session.questions.length;
       session.position += 1;
       session.isoTimeLastQuestionStarted = new Date().toISOString();
       if (session.position >= totalQuestions) {
-        await endQuiz(quizId);
+        return -2;
       }
       return session.position;
     }
@@ -497,10 +506,10 @@ export const submitAnswers = async (
 export const getResults = (playerId: string) => {
   const session = sessions[sessionIdFromPlayerId(playerId)];
   if (session.active) {
-    throw new InputError('Session is ongoing, cannot get results yet');
+    console.warn('Session is still active, results may be inaccurate');
   } else if (session.position === -1) {
     throw new InputError('Session has not started yet');
-  } else {
-    return session.players[playerId].answers;
   }
+
+  return session.players[playerId].answers;
 };

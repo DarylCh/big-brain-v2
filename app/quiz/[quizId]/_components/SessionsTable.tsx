@@ -1,6 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { Box, Pagination, Paper, Typography } from '@mui/material';
+import {
+  Box,
+  InputAdornment,
+  Pagination,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import { useRouter } from 'next/navigation';
 import SessionCard from './SessionCard';
 
@@ -15,12 +23,39 @@ export default function SessionsTable({
 }) {
   const router = useRouter();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
 
-  const pageCount = Math.ceil(oldSessions.length / PAGE_SIZE);
-  const paginated = oldSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filtered = oldSessions.filter((s) =>
+    s.toString().includes(search.trim())
+  );
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 0, border: 'none' }}>
+      <Box sx={{ px: 2, pt: 2 }}>
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Search by quiz code"
+          value={search}
+          onChange={(e) => handleSearch(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      </Box>
       <Box
         sx={{
           p: 2,
@@ -30,7 +65,7 @@ export default function SessionsTable({
           minHeight: PAGE_SIZE * 60,
         }}
       >
-        {oldSessions.length > 0 ? (
+        {filtered.length > 0 ? (
           <>
             {paginated.map((session) => (
               <SessionCard
@@ -56,7 +91,9 @@ export default function SessionsTable({
             color="#888"
             sx={{ py: 2, textAlign: 'center' }}
           >
-            No previous sessions
+            {oldSessions.length === 0
+              ? 'No previous sessions'
+              : 'No sessions match your search'}
           </Typography>
         )}
       </Box>

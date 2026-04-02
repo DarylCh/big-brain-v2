@@ -1,12 +1,14 @@
 import { Typography } from '@mui/material';
 import Link from 'next/link';
+import { primaryColor } from '../lib/colors';
+import { useUser } from '../lib/UserContext';
 
 export const navStyle = {
   display: 'flex',
   padding: '5px 20px',
   alignItems: 'center',
   justifyContent: 'space-between',
-  backgroundColor: '#FF5003',
+  backgroundColor: `${primaryColor}`,
   width: '100%',
 };
 
@@ -15,12 +17,14 @@ export const navEleStyle = {
 };
 
 export const navLinkStyle = {
-  color: 'black',
+  color: 'white',
   fontWeight: 'bold',
 };
 
 // This component serves as the navbar for all pages with admin status
 export const AdminNavBar = () => {
+  const { logout } = useUser();
+
   return (
     <div id="navBar" style={navStyle}>
       <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
@@ -29,14 +33,19 @@ export const AdminNavBar = () => {
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <div style={navEleStyle}>
           <span>
-            <Link id="nav-home" style={navLinkStyle} href="/home">
+            <Link id="nav-home" style={navLinkStyle} href="/user">
               Home
             </Link>
           </span>
         </div>
         <div style={navEleStyle}>
           <span>
-            <Link id="nav-logout" style={navLinkStyle} href="/login">
+            <Link
+              id="nav-logout"
+              style={navLinkStyle}
+              href="/login"
+              onClick={logout}
+            >
               Logout
             </Link>
           </span>

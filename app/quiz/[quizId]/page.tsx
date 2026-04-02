@@ -9,6 +9,7 @@ import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
 import QuizPanel from './_components/QuizPanel';
 import { Question } from '@/app/lib/types';
 import { useUser } from '@/app/lib/UserContext';
+import { Snackbar, Alert } from '@mui/material';
 
 export default function QuizDetailsPage({
   params,
@@ -25,6 +26,7 @@ export default function QuizDetailsPage({
   const [popup, setPopup] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [redirectSnackbar, setRedirectSnackbar] = useState(false);
 
   const saveDetails = async (name: string, description: string) => {
     await apiClient.updateQuiz(token, quizId, { name, description });
@@ -40,17 +42,24 @@ export default function QuizDetailsPage({
 
   const advanceQuiz = async () => {
     if (!token) return;
-    await apiClient.advanceQuiz(token, quizId);
+    const sessionPosition = await apiClient.advanceQuiz(token, quizId);
+    if (sessionPosition.stage === -2) {
+      setRedirectSnackbar(true);
+      setTimeout(() => {
+        router.push(`/quiz/${quizId}/session/${quiz?.active}/results`);
+      }, 2000);
+    }
+
     refetch();
   };
 
-  const updateQuestions = async (newQuestion: Question) => {
+  const updateQuestions = async (newQuestion: Question, formOpen: boolean) => {
     await apiClient.updateQuiz(token, quizId, {
       questions: [...(quiz?.questions ?? []), newQuestion],
       thumbnail: 'imageProcessed',
     });
     refetch();
-    setFormOpen(false);
+    setFormOpen(formOpen);
   };
 
   useEffect(() => {
@@ -59,7 +68,7 @@ export default function QuizDetailsPage({
       setQuiz(quizInfo);
     };
 
-    if (quizId !== '') {
+    if (quizId !== '' && token !== '') {
       void fetchQuiz(quizId, token);
     }
   }, [quizId, token, refetchDetails]);
@@ -74,7 +83,7 @@ export default function QuizDetailsPage({
         onMutated={refetch}
         onDelete={() => router.back()}
         onAddQuestion={() => setFormOpen(true)}
-        onAdvance={() => void advanceQuiz()}
+        onAdvance={() => advanceQuiz()}
         onEditOpen={() => setEditOpen(true)}
       />
       <NewQuestionForm
@@ -91,6 +100,14 @@ export default function QuizDetailsPage({
         onSave={saveDetails}
       />
       {popup && <ErrorPopup title="Error" desc={desc} toggle={activatePopup} />}
+      <Snackbar
+        open={redirectSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="info" variant="filled">
+          Quiz complete — redirecting to results...
+        </Alert>
+      </Snackbar>
     </>
   );
 }

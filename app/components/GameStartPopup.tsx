@@ -30,9 +30,9 @@ export const GamePopup = ({
   };
 
   // This function creates a copied url for the user
-  const copyToClipboard = (sessionId: string) => {
+  const copyToClipboard = async (sessionId: string) => {
     const text = `http:/localhost:3000/play/game/${sessionId}`;
-    navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(text);
   };
 
   // This function navigates to the admin results pages
@@ -61,7 +61,9 @@ export const GamePopup = ({
             <Button
               id="copy-button"
               aria-label="Copy link button"
-              onClick={() => copyToClipboard(sessionId)}
+              onClick={() => {
+                void copyToClipboard(sessionId);
+              }}
             >
               Copy Link
             </Button>

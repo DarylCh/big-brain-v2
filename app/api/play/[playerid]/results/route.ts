@@ -10,6 +10,7 @@ export async function GET(
     const result = getResults(playerid);
     return NextResponse.json(result);
   } catch (error: unknown) {
+    console.error('Error in GET /api/play/[playerid]/results:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

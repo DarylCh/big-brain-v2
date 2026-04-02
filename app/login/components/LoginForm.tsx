@@ -57,7 +57,7 @@ const LoginForm = () => {
     try {
       const response = await apiClient.login({ email, password });
       setToken(response.token);
-      router.push('/home');
+      router.push('/user');
     } catch {
       activatePopup();
     }
@@ -68,7 +68,15 @@ const LoginForm = () => {
         <ErrorPopup title={descTitle} desc={desc} toggle={activatePopup} />
       )}
       <h3 style={TitleStyle}>Account Login</h3>
-      <FormControl aria-label="login form" style={{ width: '100%', gap: '16px', display: 'flex', flexDirection: 'column' }}>
+      <FormControl
+        aria-label="login form"
+        style={{
+          width: '100%',
+          gap: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <TextField
           id="email"
           label="Email"
@@ -98,7 +106,10 @@ const LoginForm = () => {
         <CentredTextDiv>
           <p>
             Don&apos;t have an account?{' '}
-            <Link href="/register" style={{ ...navLinkStyle, color: primaryColor }}>
+            <Link
+              href="/register"
+              style={{ ...navLinkStyle, color: primaryColor }}
+            >
               Sign Up
             </Link>
           </p>
@@ -109,4 +120,3 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
-

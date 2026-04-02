@@ -51,7 +51,7 @@ export default function QuizDetailCard({
 
   return (
     <>
-      <BackButton sx={{ marginTop: '20px', marginLeft: '20px' }} href="/home" />
+      <BackButton sx={{ marginTop: '20px', marginLeft: '20px' }} href="/user" />
       <Box
         style={{
           padding: '30px',

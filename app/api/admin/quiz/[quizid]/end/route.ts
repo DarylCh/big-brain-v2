@@ -23,6 +23,7 @@ export async function POST(
     await endQuiz(quizId);
     return NextResponse.json({});
   } catch (error: unknown) {
+    console.error('Error in POST /api/admin/quiz/[quizid]/end:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

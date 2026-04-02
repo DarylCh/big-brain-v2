@@ -61,7 +61,7 @@ export const NewQuestionForm = ({
   gameId: string;
   open: boolean;
   setOpen: (open: boolean) => void;
-  updateQuestions: (newQuestion: Question) => Promise<void>;
+  updateQuestions: (newQuestion: Question, formOpen: boolean) => Promise<void>;
 }) => {
   const [newQuestionText, setNewQuestionText] = useState('');
   const [timeNeeded, setTimeNeeded] = useState(15);
@@ -99,17 +99,7 @@ export const NewQuestionForm = ({
     [setOptions]
   );
 
-  const submitQuestion = async () => {
-    const correct = Object.values(options)
-      .map((o, i) => (o.correct ? i + 1 : null))
-      .filter((i): i is number => i !== null);
-    const newQuestionObj: Question = {
-      question: newQuestionText,
-      options: Object.values(options).map((o) => o.text),
-      Correct: correct,
-      timeNeeded,
-    };
-    await updateQuestions(newQuestionObj);
+  const resetForm = () => {
     setNewQuestionText('');
     setTimeNeeded(15);
     setOptions({
@@ -118,7 +108,23 @@ export const NewQuestionForm = ({
       C: { text: '', correct: false },
       D: { text: '', correct: false },
     });
-    setOpen(false);
+  };
+
+  const submitQuestion = async (keepOpen: boolean) => {
+    const correct = Object.values(options)
+      .map((o, i) => (o.correct ? i : null))
+      .filter((i): i is number => i !== null);
+    const newQuestionObj: Question = {
+      question: newQuestionText,
+      options: Object.values(options).map((o) => o.text),
+      Correct: correct,
+      timeNeeded,
+    };
+    await updateQuestions(newQuestionObj, keepOpen);
+    resetForm();
+    if (!keepOpen) {
+      setOpen(false);
+    }
   };
 
   return (
@@ -175,13 +181,22 @@ export const NewQuestionForm = ({
       <DialogActions>
         <Button onClick={() => setOpen(false)}>Cancel</Button>
         <Button
+          variant="outlined"
+          disabled={!isQuestionValid}
+          onClick={() => {
+            void submitQuestion(true);
+          }}
+        >
+          Add Another
+        </Button>
+        <Button
           variant="contained"
           disabled={!isQuestionValid}
           onClick={() => {
-            void submitQuestion();
+            void submitQuestion(false);
           }}
         >
-          Add
+          Finish
         </Button>
       </DialogActions>
     </Dialog>

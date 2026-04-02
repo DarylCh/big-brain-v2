@@ -9,7 +9,7 @@ import QuizDetailCard from './QuizDetailCard';
 import QuizActionsBar from './QuizActionsBar';
 import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
 import { primaryColor } from '@/app/lib/colors';
-import { GroupDiv } from '@/app/home/_components/Dashboard';
+import { GroupDiv } from '@/app/user/_components/Dashboard';
 
 interface Props {
   quiz: AdminGetQuizResponse | null;
@@ -18,7 +18,7 @@ interface Props {
   onMutated: () => void;
   onDelete: () => void;
   onAddQuestion: () => void;
-  onAdvance: () => void;
+  onAdvance: () => Promise<void>;
   onEditOpen: () => void;
 }
 
@@ -61,6 +61,7 @@ export default function QuizPanel({
   };
 
   const isActive = !!quiz?.active;
+  console.log('quiz info: ', quiz);
 
   return (
     <GroupDiv style={{ padding: 0, width: '100%' }}>

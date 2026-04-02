@@ -2,7 +2,7 @@
 import { Box } from '@mui/material';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import AppNavBar from '@/app/components/AppNavBar';
-import { GroupDiv } from '@/app/home/_components/Dashboard';
+import { GroupDiv } from '@/app/user/_components/Dashboard';
 import { PublicQuestionReturn } from '@/app/api/play/[playerid]/question/route';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/app/lib/apiClient';
@@ -22,7 +22,6 @@ export default function SessionPage({
   const [gameStarted, setGameStarted] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [selected, setSelected] = useState<number[]>([]);
-  const [refetchQuestion, setRefetchQuestion] = useState(false);
   const [currentQuestion, setCurrentQuestion] =
     useState<PublicQuestionReturn | null>(null);
   const [loadingQuestion, setLoadingQuestion] = useState(true);
@@ -168,13 +167,7 @@ export default function SessionPage({
     if (!loadingStatus && gameStarted) {
       void retrieveQuestion();
     }
-  }, [
-    gameStarted,
-    loadingStatus,
-    refetchQuestion,
-    playerId,
-    fetchNextQuestion,
-  ]);
+  }, [gameStarted, loadingStatus, playerId, fetchNextQuestion]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -184,12 +177,12 @@ export default function SessionPage({
         return;
       }
       interval = setInterval(() => {
-        setRefetchQuestion((prev) => !prev);
+        void fetchNextQuestion();
       }, 500);
     }
 
     return () => clearInterval(interval);
-  }, [correctAnswer, currentQuestion]);
+  }, [correctAnswer, currentQuestion, fetchNextQuestion]);
 
   return (
     <>

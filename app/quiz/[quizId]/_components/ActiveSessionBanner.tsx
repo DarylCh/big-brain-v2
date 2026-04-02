@@ -8,9 +8,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ForwardIcon from '@mui/icons-material/Forward';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
@@ -21,21 +19,20 @@ type SessionStatus = { position: number; questions: unknown[] };
 interface Props {
   quiz: AdminGetQuizResponse | null;
   token: string;
-  quizId: string;
-  onAdvance: () => void;
+  onAdvance: () => Promise<void>;
 }
 
-export default function ActiveSessionBanner({
-  quiz,
-  token,
-  quizId,
-  onAdvance,
-}: Props) {
-  const router = useRouter();
+export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(
     null
   );
   const [copied, setCopied] = useState(false);
+
+  const fetchStatus = async () => {
+    if (!quiz?.active) return;
+    const res = await apiClient.getSessionStatus(token, quiz.active.toString());
+    setSessionStatus(res.results);
+  };
 
   const copyCode = () => {
     void navigator.clipboard.writeText(quiz?.active?.toString() ?? '');
@@ -44,16 +41,18 @@ export default function ActiveSessionBanner({
   };
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      if (!quiz?.active) return;
-      const res = await apiClient.getSessionStatus(
-        token,
-        quiz.active.toString()
-      );
+    if (!quiz?.active) return;
+    const active = quiz.active;
+    void (async () => {
+      const res = await apiClient.getSessionStatus(token, active.toString());
       setSessionStatus(res.results);
-    };
-    void fetchStatus();
+    })();
   }, [quiz?.active, token]);
+
+  const handleAdvance = async () => {
+    await onAdvance();
+    await fetchStatus();
+  };
 
   if (!quiz?.active) return null;
 
@@ -62,11 +61,6 @@ export default function ActiveSessionBanner({
       ? 'Ready to begin'
       : `Question ${sessionStatus.position + 1} of ${sessionStatus.questions.length}`
     : 'Loading…';
-
-  const isOnLastQuestion =
-    sessionStatus !== null &&
-    sessionStatus.position >= 0 &&
-    sessionStatus.position >= sessionStatus.questions.length - 1;
 
   return (
     <>
@@ -115,33 +109,19 @@ export default function ActiveSessionBanner({
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {isOnLastQuestion ? (
-            <Tooltip title="View results">
-              <IconButton
-                size="small"
-                onClick={() =>
-                  router.push(`/quiz/${quizId}/session/${quiz.active}/results`)
-                }
-                sx={{ color: primaryColor }}
-              >
-                <OpenInNewIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Tooltip
-              title={
-                sessionStatus?.position === -1 ? 'Start' : 'Advance question'
-              }
+          <Tooltip
+            title={
+              sessionStatus?.position === -1 ? 'Start' : 'Advance question'
+            }
+          >
+            <IconButton
+              size="small"
+              onClick={() => void handleAdvance()}
+              sx={{ color: primaryColor }}
             >
-              <IconButton
-                size="small"
-                onClick={onAdvance}
-                sx={{ color: primaryColor }}
-              >
-                <ForwardIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+              <ForwardIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
       <Divider />

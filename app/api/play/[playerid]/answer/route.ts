@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnswers, submitAnswers, save } from '@/app/lib/service';
+import { getAnswers, submitAnswers } from '@/app/lib/service';
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
     const { playerid } = await params;
     console.log(`Retrieving answer IDs for player ${playerid}`);
     const answerIds = getAnswers(playerid);
-    console.log('Retrieved answer IDs: ', answerIds);
+    console.log('Retrieved answer IDs: ');
     return NextResponse.json({ answerIds });
   } catch (error: unknown) {
     console.error('Error in retrieving answer IDs:', error);
@@ -33,6 +33,7 @@ export async function PUT(
     await submitAnswers(playerid, answerIds);
     return NextResponse.json({});
   } catch (error: unknown) {
+    console.error('Error in PUT /api/play/[playerid]/answer:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

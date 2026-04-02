@@ -6,7 +6,8 @@ import {
   assertOwnsQuiz,
   getEmailFromAuthorization,
 } from '@/app/lib/service';
-import { Question } from '@/app/lib/types';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
@@ -26,11 +27,15 @@ export async function GET(
     const quiz = getQuiz(quizId);
     return NextResponse.json(quiz);
   } catch (error: unknown) {
+    console.error('Error in GET quiz:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     return NextResponse.json(
-      { error: 'A system error occurred' },
+      {
+        error:
+          error instanceof Error ? error.message : 'A system error occurred',
+      },
       { status: 500 }
     );
   }
@@ -52,10 +57,19 @@ export async function PUT(
     const email = getEmailFromAuthorization(authHeader);
     assertOwnsQuiz(email, quizId);
 
-    const { questions, name, thumbnail, description, defaultQuestionDuration } = await request.json();
-    await updateQuiz(quizId, questions, name, thumbnail, description, defaultQuestionDuration);
+    const { questions, name, thumbnail, description, defaultQuestionDuration } =
+      await request.json();
+    await updateQuiz(
+      quizId,
+      questions,
+      name,
+      thumbnail,
+      description,
+      defaultQuestionDuration
+    );
     return NextResponse.json({});
   } catch (error: unknown) {
+    console.error('Error in PUT /api/admin/quiz/[quizid]:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
@@ -84,6 +98,7 @@ export async function DELETE(
     await removeQuiz(quizId);
     return NextResponse.json({});
   } catch (error: unknown) {
+    console.error('Error in DELETE /api/admin/quiz/[quizid]:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

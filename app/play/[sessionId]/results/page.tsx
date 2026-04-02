@@ -5,7 +5,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AppNavBar from '@/app/components/AppNavBar';
-import { GroupDiv } from '@/app/home/_components/Dashboard';
+import { GroupDiv } from '@/app/user/_components/Dashboard';
 import { apiClient } from '@/app/lib/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 import { PlayerAnswer } from '@/app/lib/types';
@@ -22,7 +22,6 @@ export default function ResultsPage() {
     const fetch = async () => {
       try {
         const res = await apiClient.getPlayerResults(playerId);
-        console.log('RES: ', res);
         setAnswers(res);
       } finally {
         setLoading(false);

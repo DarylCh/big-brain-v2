@@ -7,9 +7,13 @@ export async function POST(request: NextRequest) {
     const token = await login(email, password);
     return NextResponse.json({ token });
   } catch (error: unknown) {
+    console.error('Error in POST /api/admin/auth/login:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }

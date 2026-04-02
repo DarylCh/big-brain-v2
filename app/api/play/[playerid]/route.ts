@@ -5,7 +5,6 @@ import {
   getAnswers,
   submitAnswers,
   getResults,
-  save,
 } from '@/app/lib/service';
 
 export async function GET(
@@ -31,6 +30,7 @@ export async function GET(
       return NextResponse.json(result);
     }
   } catch (error: unknown) {
+    console.error('Error in GET /api/play/[playerid]:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -51,6 +51,7 @@ export async function PUT(
     await submitAnswers(playerid, answerIds);
     return NextResponse.json({});
   } catch (error: unknown) {
+    console.error('Error in PUT /api/play/[playerid]:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

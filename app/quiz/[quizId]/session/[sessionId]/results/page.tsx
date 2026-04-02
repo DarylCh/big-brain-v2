@@ -1,20 +1,21 @@
 'use client';
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import AppNavBar from '@/app/components/AppNavBar';
-import { GroupDiv } from '@/app/home/_components/Dashboard';
+import { GroupDiv } from '@/app/user/_components/Dashboard';
 import { useUser } from '@/app/lib/UserContext';
 import { apiClient } from '@/app/lib/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 import { Player } from '@/app/lib/types';
+import BackButton from '@/app/components/BackButton';
 
 export default function SessionResultsPage({
   params,
 }: {
-  params: Promise<{ sessionId: string }>;
+  params: Promise<{ quizId: string; sessionId: string }>;
 }) {
-  const { sessionId } = use(params);
+  const { quizId, sessionId } = use(params);
   const { token } = useUser();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,14 +32,27 @@ export default function SessionResultsPage({
     if (token) void fetchResults();
   }, [token, sessionId]);
 
-  const scores = players.map((p) => p.answers.filter((a) => a.correct).length);
-  const names = players.map((p) => p.name);
+  const scoresObject = useMemo(
+    () =>
+      players
+        .map((p) => ({
+          name: p.name,
+          score: p.answers.filter((a) => a.correct).length,
+          answers: p.answers,
+        }))
+        .sort((a, b) => b.score - a.score),
+    [players]
+  );
+  const scores = scoresObject.map((p) => p.score);
+  const names = scoresObject.map((p) => p.name);
+  const totalQuestions = players[0]?.answers.length ?? 0;
 
   return (
     <>
       <AppNavBar />
       <main>
         <GroupDiv>
+          <BackButton sx={{ mb: 2 }} href={`/quiz/${quizId}`} />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="h4" fontWeight="bold" color={primaryColor}>
               Session Results
@@ -57,6 +71,18 @@ export default function SessionResultsPage({
                 <Typography variant="h6">Score per Player</Typography>
                 <BarChart
                   xAxis={[{ scaleType: 'band', data: names }]}
+                  yAxis={[
+                    {
+                      min: 0,
+                      max: totalQuestions,
+                      tickInterval: [...Array(totalQuestions + 1)].map(
+                        (_value, index) => index
+                      ),
+                      tickNumber: totalQuestions + 1,
+                      valueFormatter: (value: number | null) =>
+                        value === null ? '' : String(value),
+                    },
+                  ]}
                   series={[
                     {
                       data: scores,

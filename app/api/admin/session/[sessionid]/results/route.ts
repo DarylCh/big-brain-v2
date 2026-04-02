@@ -23,6 +23,10 @@ export async function GET(
     const results = sessionResults(sessionId);
     return NextResponse.json({ results });
   } catch (error: unknown) {
+    console.error(
+      'Error in GET /api/admin/session/[sessionid]/results:',
+      error
+    );
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
