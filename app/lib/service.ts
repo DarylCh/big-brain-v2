@@ -8,15 +8,7 @@ import {
   quizQuestionGetCorrectAnswers,
   quizQuestionGetDuration,
 } from './custom';
-import {
-  Admins,
-  PlayerAnswer,
-  Question,
-  Quiz,
-  Quizzes,
-  Session,
-  Sessions,
-} from './types';
+import { Admins, Question, Quiz, Quizzes, Session, Sessions } from './types';
 import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
 import { QuizListItem } from './apiClient';
 
@@ -499,12 +491,9 @@ export const getAnswers = (playerId: string) => {
   }
 };
 
-export const submitAnswers = async (
-  playerId: string,
-  answerList: PlayerAnswer[]
-) =>
+export const submitAnswers = async (playerId: string, answerIds: number[]) =>
   await mutateLock(() => {
-    if (answerList === undefined || answerList.length === 0) {
+    if (answerIds === undefined || answerIds.length === 0) {
       throw new InputError('Answers must be provided');
     } else {
       const session = getActiveSessionFromSessionId(
@@ -518,13 +507,13 @@ export const submitAnswers = async (
         session.players[playerId].answers[session.position] = {
           questionStartedAt: session.isoTimeLastQuestionStarted,
           answeredAt: new Date().toISOString(),
-          answerIds: answerList.map((a) => a.answerIds).flat(),
+          answerIds: answerIds,
           correct:
             JSON.stringify(
               quizQuestionGetCorrectAnswers(
                 session.questions[session.position]
               ).sort()
-            ) === JSON.stringify(answerList.sort()),
+            ) === JSON.stringify([...answerIds].sort()),
         };
       }
     }
