@@ -13,6 +13,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
 import { primaryColor } from '@/app/lib/colors';
+import { CircularProgress } from '@mui/material';
 
 type SessionStatus = { position: number; questions: unknown[] };
 
@@ -27,6 +28,7 @@ export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
     null
   );
   const [copied, setCopied] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
 
   const fetchStatus = async () => {
     if (!quiz?.active) return;
@@ -50,8 +52,13 @@ export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
   }, [quiz?.active, token]);
 
   const handleAdvance = async () => {
-    await onAdvance();
-    await fetchStatus();
+    setAdvancing(true);
+    try {
+      await onAdvance();
+      await fetchStatus();
+    } finally {
+      setAdvancing(false);
+    }
   };
 
   if (!quiz?.active) return null;
@@ -114,13 +121,20 @@ export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
               sessionStatus?.position === -1 ? 'Start' : 'Advance question'
             }
           >
-            <IconButton
-              size="small"
-              onClick={() => void handleAdvance()}
-              sx={{ color: primaryColor }}
-            >
-              <ForwardIcon />
-            </IconButton>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => void handleAdvance()}
+                disabled={advancing}
+                sx={{ color: primaryColor }}
+              >
+                {advancing ? (
+                  <CircularProgress size={18} sx={{ color: primaryColor }} />
+                ) : (
+                  <ForwardIcon />
+                )}
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       </Box>

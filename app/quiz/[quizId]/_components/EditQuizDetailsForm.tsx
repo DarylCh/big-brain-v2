@@ -1,14 +1,13 @@
+'use client';
+import { useState, useEffect } from 'react';
 import {
-  Button,
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
-  FormControl,
+  DialogContent,
+  DialogActions,
+  Button,
   TextField,
 } from '@mui/material';
-import { useState } from 'react';
-import { primaryColor } from '@/app/lib/colors';
 
 interface Props {
   open: boolean;
@@ -27,61 +26,55 @@ export default function EditQuizDetailsForm({
 }: Props) {
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
+  const [loading, setLoading] = useState(false);
 
-  // Sync fields when the dialog opens with new initial values
-  const handleEntered = () => {
-    setName(initialName);
-    setDescription(initialDescription);
+  useEffect(() => {
+    if (open) {
+      setName(initialName);
+      setDescription(initialDescription);
+    }
+  }, [open, initialName, initialDescription]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await onSave(name, description);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-      slotProps={{ transition: { onEnter: handleEntered } }}
-    >
-      <DialogTitle
-        sx={{
-          backgroundColor: primaryColor,
-          color: 'white',
-          fontWeight: 'bold',
-        }}
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Edit Quiz Details</DialogTitle>
+      <DialogContent
+        sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}
       >
-        Edit Quiz Details
-      </DialogTitle>
-      <DialogContent>
-        <FormControl fullWidth>
-          <TextField
-            label="Name"
-            placeholder="Quiz name"
-            fullWidth
-            margin="dense"
-            sx={{ margin: '24px 0 8px' }}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            slotProps={{ htmlInput: { maxLength: 100 } }}
-          />
-          <TextField
-            label="Description"
-            placeholder="Describe your quiz"
-            fullWidth
-            multiline
-            minRows={3}
-            margin="dense"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            slotProps={{ htmlInput: { maxLength: 400 } }}
-          />
-        </FormControl>
+        <TextField
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          fullWidth
+          margin="dense"
+        />
+        <TextField
+          label="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          fullWidth
+          multiline
+          rows={3}
+          margin="dense"
+        />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
         <Button
           variant="contained"
-          disabled={!name.trim()}
-          onClick={() => void onSave(name.trim(), description)}
+          onClick={() => void handleSave()}
+          disabled={name.trim() === '' || loading}
         >
           Save
         </Button>

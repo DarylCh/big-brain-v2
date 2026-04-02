@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { styled } from '@mui/material/styles';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import GameFeed from '@/app/quiz/_components/QuizFeed';
 import ErrorPopup from '@/app/components/ErrorPopup';
 import { apiClient } from '@/app/lib/apiClient';
@@ -32,10 +32,11 @@ export const FormDiv = styled('div')`
 // This component is the Dashboard for the dashboard page
 // This is where all of the games are shown
 const Dashboard = () => {
-  const { token } = useUser();
+  const { token, isInitialized } = useUser();
   const [isClicked, setisClicked] = useState(true);
   const [popup, setPopup] = useState(false);
   const [desc, setDesc] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   // This function allows the popup to be triggered
   const activatePopup = () => {
@@ -50,11 +51,14 @@ const Dashboard = () => {
 
   const handleResetData = async () => {
     try {
+      setResetLoading(true);
       await apiClient.deleteStore(token);
       setisClicked((c) => !c);
     } catch (err) {
       setDesc(err instanceof Error ? err.message : 'Failed to reset data');
       activatePopup();
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -69,7 +73,7 @@ const Dashboard = () => {
       )}
       <Typography
         variant="h4"
-        sx={{ marginTop: '48px', marginBottom: '18px', textAlign: 'center' }}
+        sx={{ paddingTop: '48px', marginBottom: '18px', textAlign: 'center' }}
       >
         Welcome Daryl
       </Typography>
@@ -101,6 +105,12 @@ const Dashboard = () => {
           variant="outlined"
           color="error"
           onClick={() => void handleResetData()}
+          disabled={resetLoading || !isInitialized}
+          startIcon={
+            resetLoading ? (
+              <CircularProgress size={16} color="error" />
+            ) : undefined
+          }
         >
           Reset All Data
         </Button>

@@ -1,6 +1,6 @@
 'use client';
 import LoginForm from './components/LoginForm';
-import AppNavBar from '../components/AppNavBar';
+import AppNavBar from '../../components/AppNavBar';
 
 export function Login() {
   return (

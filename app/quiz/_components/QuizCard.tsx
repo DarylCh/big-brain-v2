@@ -1,7 +1,18 @@
-import { IconButton, ListItem, ListItemAvatar, Avatar, Typography } from '@mui/material';
+import {
+  IconButton,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  Typography,
+} from '@mui/material';
 import ImageIcon from '@mui/icons-material/Image';
 import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import { QuizListItem } from '@/app/lib/apiClient';
+
+const isValidThumbnail = (thumbnail: string | null) =>
+  /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/.test(
+    thumbnail ?? ''
+  );
 
 type QuizCardProps = {
   quiz: QuizListItem;
@@ -9,6 +20,7 @@ type QuizCardProps = {
 };
 
 const QuizCard = ({ quiz, onClick }: QuizCardProps) => {
+  const hasThumbnail = isValidThumbnail(quiz.thumbnail);
   return (
     <ListItem
       sx={{
@@ -25,9 +37,17 @@ const QuizCard = ({ quiz, onClick }: QuizCardProps) => {
     >
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <ListItemAvatar>
-          <Avatar>
-            <ImageIcon />
-          </Avatar>
+          {hasThumbnail ? (
+            <Avatar
+              src={quiz.thumbnail!}
+              variant="rounded"
+              sx={{ width: 48, height: 48 }}
+            />
+          ) : (
+            <Avatar sx={{ width: 48, height: 48 }}>
+              <ImageIcon sx={{ fontSize: 28 }} />
+            </Avatar>
+          )}
         </ListItemAvatar>
         <div>
           <Typography variant="h6">{quiz.name}</Typography>

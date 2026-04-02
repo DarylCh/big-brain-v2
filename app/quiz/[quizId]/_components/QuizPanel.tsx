@@ -82,19 +82,19 @@ export default function QuizPanel({
         open={confirmOpen}
         setOpen={setConfirmOpen}
         variant="delete"
-        onConfirm={() => void deleteQuiz()}
+        onConfirm={deleteQuiz}
       />
       <ConfirmDialog
         open={startOpen}
         setOpen={setStartOpen}
         variant="start"
-        onConfirm={() => void startQuiz()}
+        onConfirm={startQuiz}
       />
       <ConfirmDialog
         open={stopOpen}
         setOpen={setStopOpen}
         variant="stop"
-        onConfirm={() => void stopQuiz()}
+        onConfirm={stopQuiz}
       />
       <ActiveSessionBanner quiz={quiz} token={token} onAdvance={onAdvance} />
       <Tabs

@@ -5,20 +5,24 @@ type UserContextType = {
   token: string;
   setToken: (token: string) => void;
   logout: () => void;
+  isInitialized: boolean;
 };
 
 const UserContext = createContext<UserContextType>({
   token: '',
   setToken: () => {},
   logout: () => {},
+  isInitialized: false,
 });
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const retrieveAndStoreToken = () => {
       setTokenState(localStorage.getItem('token') ?? '');
+      setIsInitialized(true);
     };
 
     retrieveAndStoreToken();
@@ -35,7 +39,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ token, setToken, logout }}>
+    <UserContext.Provider value={{ isInitialized, token, setToken, logout }}>
       {children}
     </UserContext.Provider>
   );

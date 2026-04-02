@@ -4,8 +4,10 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  CircularProgress,
   Typography,
 } from '@mui/material';
+import { useState } from 'react';
 
 type ConfirmDialogVariant = 'delete' | 'advance' | 'start' | 'stop';
 
@@ -56,9 +58,20 @@ export const ConfirmDialog = ({
   open: boolean;
   setOpen: (open: boolean) => void;
   variant: ConfirmDialogVariant;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
 }) => {
+  const [loading, setLoading] = useState(false);
   const { title, description, confirmLabel, confirmColor } = config[variant];
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+      setOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog
@@ -79,16 +92,20 @@ export const ConfirmDialog = ({
         <Typography variant="body1">{description}</Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setOpen(false)}>Cancel</Button>
+        <Button onClick={() => setOpen(false)} disabled={loading}>
+          Cancel
+        </Button>
         <Button
           variant="contained"
           color={confirmColor}
-          onClick={() => {
-            onConfirm();
-            setOpen(false);
-          }}
+          disabled={loading}
+          onClick={() => void handleConfirm()}
         >
-          {confirmLabel}
+          {loading ? (
+            <CircularProgress size={18} sx={{ color: 'inherit' }} />
+          ) : (
+            confirmLabel
+          )}
         </Button>
       </DialogActions>
     </Dialog>

@@ -46,14 +46,14 @@ export default function Home() {
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
             Want to host?{' '}
             <Link
-              href="/login"
+              href="/user/login"
               style={{ color: primaryColor, fontWeight: 'bold' }}
             >
               Log in
             </Link>{' '}
             or{' '}
             <Link
-              href="/register"
+              href="/user/register"
               style={{ color: primaryColor, fontWeight: 'bold' }}
             >
               create an account

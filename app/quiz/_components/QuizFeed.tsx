@@ -23,7 +23,7 @@ const QuizFeed = ({
   click: boolean;
   onCount?: (n: number) => void;
 }) => {
-  const { token } = useUser();
+  const { token, isInitialized } = useUser();
   const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
   const router = useRouter();
 
@@ -38,8 +38,10 @@ const QuizFeed = ({
       onCount?.(req.quizzes.length);
     };
 
-    void fetchQuizzes();
-  }, [click, token, onCount]);
+    if (isInitialized) {
+      void fetchQuizzes();
+    }
+  }, [click, isInitialized, token, onCount]);
 
   return (
     <>

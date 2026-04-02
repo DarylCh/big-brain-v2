@@ -101,7 +101,7 @@ export default function GameView({
       <Box
         width="100%"
         display="grid"
-        gridTemplateColumns="1fr 1fr"
+        gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }}
         gap="16px"
         rowGap="2px"
       >

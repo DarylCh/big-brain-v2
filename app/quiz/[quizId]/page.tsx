@@ -18,7 +18,7 @@ export default function QuizDetailsPage({
 }) {
   const { quizId } = use(params);
   const router = useRouter();
-  const { token } = useUser();
+  const { token, isInitialized } = useUser();
 
   const [quiz, setQuiz] = useState<AdminGetQuizResponse | null>(null);
   const [refetchDetails, setRefetchDetails] = useState(false);
@@ -68,10 +68,10 @@ export default function QuizDetailsPage({
       setQuiz(quizInfo);
     };
 
-    if (quizId !== '' && token !== '') {
+    if (quizId !== '' && token !== '' && isInitialized) {
       void fetchQuiz(quizId, token);
     }
-  }, [quizId, token, refetchDetails]);
+  }, [quizId, token, isInitialized, refetchDetails]);
 
   return (
     <>

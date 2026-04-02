@@ -8,12 +8,18 @@ export async function GET(
   try {
     const { playerid } = await params;
     const started = hasStarted(playerid);
-    return NextResponse.json({ started }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(
+      { started },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error: unknown) {
     console.error('Error in retrieving player status:', error);
     if (error instanceof Error && error.name === 'InputError') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: 'A system error occurred' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'A system error occurred' },
+      { status: 500 }
+    );
   }
 }

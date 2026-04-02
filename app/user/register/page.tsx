@@ -7,10 +7,10 @@ import {
   TitleStyle,
   CentredTextDiv,
 } from '../login/components/LoginForm';
-import FullButton from '../components/FullButton';
-import { navLinkStyle } from '../components/AdminNavBar';
+import FullButton from '../../components/FullButton';
+import { navLinkStyle } from '../../components/AdminNavBar';
 import Link from 'next/link';
-import AppNavBar from '../components/AppNavBar';
+import AppNavBar from '../../components/AppNavBar';
 import { FormControl, TextField } from '@mui/material';
 import { apiClient } from '@/app/lib/apiClient';
 import { useUser } from '@/app/lib/UserContext';
@@ -112,7 +112,7 @@ const RegisterPage = () => {
               <p>
                 Have an account already?{' '}
                 <Link
-                  href="/login"
+                  href="/user/login"
                   style={{ ...navLinkStyle, color: primaryColor }}
                 >
                   Log in

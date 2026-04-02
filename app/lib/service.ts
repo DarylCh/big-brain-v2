@@ -50,12 +50,23 @@ const reload = async () => {
   } catch {} // keep current state if Redis unavailable
 };
 
+await reload();
+// Write to Redis directly — only call from within a held lock
+const persist = async () => {
+  try {
+    await redis.set(REDIS_KEY, { admins, quizzes, sessions });
+  } catch (error) {
+    console.error('ERROR: Failed to write to Redis', error);
+    throw new Error('Writing to database failed');
+  }
+};
+
 export const update = async (
   newAdmins: Admins,
   newQuizzes: Quizzes,
   newSessions: Sessions
 ): Promise<void> => {
-  await lock.acquire('saveData', async () => {
+  await lock.acquire('db', async () => {
     try {
       await redis.set(REDIS_KEY, {
         admins: newAdmins,
@@ -111,10 +122,10 @@ const isAnswerAvailable = (session: Session) => {
 };
 const mutateLock = async <T>(callback: () => T | Promise<T>) => {
   let result: T;
-  await lock.acquire('sessionMutateLock', async () => {
+  await lock.acquire('db', async () => {
     await reload();
     result = await callback();
-    await save();
+    await persist(); // write directly — no nested lock acquire
   });
 
   return result!;
@@ -272,6 +283,14 @@ export const updateQuiz = async (
 
 export const removeQuiz = async (quizId: string) =>
   await mutateLock(() => {
+    if (quizHasActiveSession(quizId)) {
+      throw new InputError('Cannot delete a quiz with an active session');
+    }
+    Object.keys(sessions).forEach((s) => {
+      if (sessions[s].quizId === quizId) {
+        delete sessions[s];
+      }
+    });
     delete quizzes[quizId];
   });
 

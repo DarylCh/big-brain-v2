@@ -7,7 +7,13 @@ export default function HomePage() {
     <>
       <AppNavBar />
       <main>
-        <Box sx={{ backgroundColor: '#fafafa', minHeight: '100vh' }}>
+        <Box
+          sx={{
+            backgroundColor: '#fafafa',
+            minHeight: '100vh',
+            overflow: 'hidden',
+          }}
+        >
           <Dashboard />
         </Box>
       </main>

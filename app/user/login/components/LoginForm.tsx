@@ -21,7 +21,7 @@ export const LoginRegBackgroundStyle: React.CSSProperties = {
   backgroundColor: 'white',
   textAlign: 'left',
   width: '400px',
-  margin: '50px auto',
+  margin: '0 auto',
   padding: '25px 40px',
   borderRadius: '8px',
   boxShadow: '0px 2px 2px 2px #dedede',
@@ -30,6 +30,7 @@ export const LoginRegBackgroundStyle: React.CSSProperties = {
 export const LoginRegPageStyle: React.CSSProperties = {
   backgroundColor: '#fafafa',
   minHeight: '100vh',
+  paddingTop: '50px',
 };
 
 export const TitleStyle: React.CSSProperties = {
@@ -118,7 +119,7 @@ const LoginForm = () => {
             <p>
               Don&apos;t have an account?{' '}
               <Link
-                href="/register"
+                href="/user/register"
                 style={{ ...navLinkStyle, color: primaryColor }}
               >
                 Sign Up

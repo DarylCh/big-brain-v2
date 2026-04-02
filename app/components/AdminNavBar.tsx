@@ -43,7 +43,7 @@ export const AdminNavBar = () => {
             <Link
               id="nav-logout"
               style={navLinkStyle}
-              href="/login"
+              href="/user/login"
               onClick={logout}
             >
               Logout
