@@ -5,16 +5,20 @@ import Link from 'next/link';
 import JoinQuiz from '@/app/user/_components/JoinQuiz';
 import ErrorPopup from '@/app/components/ErrorPopup';
 import { primaryColor } from '@/app/lib/colors';
+import AppNavBar from '@/app/components/AppNavBar';
+import { useUser } from '@/app/lib/UserContext';
 
 export default function Home() {
   const [popup, setPopup] = useState(false);
   const [desc, setDesc] = useState('');
+  const { token } = useUser();
 
   return (
     <>
       {popup && (
         <ErrorPopup title="Error" desc={desc} toggle={() => setPopup(false)} />
       )}
+      {token && <AppNavBar />}
       <main>
         <Box
           sx={{

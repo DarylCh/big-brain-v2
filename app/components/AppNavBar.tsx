@@ -25,6 +25,13 @@ const AppNavBar = () => {
               </div>
               <div style={navEleStyle}>
                 <span>
+                  <Link id="nav-play" style={navLinkStyle} href="/">
+                    Play
+                  </Link>
+                </span>
+              </div>
+              <div style={navEleStyle}>
+                <span>
                   <Link id="nav-logout" style={navLinkStyle} href="/user/login">
                     Logout
                   </Link>

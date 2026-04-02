@@ -10,6 +10,7 @@ import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import { QuizListItem } from '@/app/lib/apiClient';
 
 const isValidThumbnail = (thumbnail: string | null) =>
+  /^https?:\/\/.+/.test(thumbnail ?? '') ||
   /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/.test(
     thumbnail ?? ''
   );

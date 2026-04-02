@@ -5,7 +5,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import Image from 'next/image';
 import EditIcon from '@mui/icons-material/Edit';
 import BackButton from '@/app/components/BackButton';
-import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
+import { AdminGetQuizResponse } from '@/app/lib/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 
 interface Props {
@@ -27,6 +27,7 @@ export default function QuizDetailCard({
 
   const isValidThumbnail = useMemo(
     () =>
+      /^https?:\/\/.+/.test(quiz?.thumbnail ?? '') ||
       /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/.test(
         quiz?.thumbnail ?? ''
       ),
@@ -34,13 +35,15 @@ export default function QuizDetailCard({
   );
 
   const uploadThumbnail = async (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      await apiClient.updateQuiz(token, quizId, { thumbnail: base64 });
-      onMutated();
-    };
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`/api/admin/quiz/${quizId}/thumbnail`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Thumbnail upload failed');
+    onMutated();
   };
 
   const totalQuestions = quiz?.questions.length ?? 0;
@@ -96,6 +99,7 @@ export default function QuizDetailCard({
                   src={quiz!.thumbnail!}
                   alt="Quiz thumbnail"
                   fill
+                  loading="eager"
                   unoptimized
                   style={{ objectFit: 'cover' }}
                 />

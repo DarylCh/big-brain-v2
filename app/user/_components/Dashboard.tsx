@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { styled } from '@mui/material/styles';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
-import GameFeed from '@/app/quiz/_components/QuizFeed';
+import QuizFeed from '@/app/user/_components/QuizFeed';
 import ErrorPopup from '@/app/components/ErrorPopup';
 import { apiClient } from '@/app/lib/apiClient';
 import { useUser } from '@/app/lib/UserContext';
@@ -99,7 +99,7 @@ const Dashboard = () => {
           setDesc={setDesc}
         />
       </Box>
-      <GameFeed click={isClicked} />
+      <QuizFeed click={isClicked} />
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 4 }}>
         <Button
           variant="outlined"

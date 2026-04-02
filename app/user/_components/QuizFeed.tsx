@@ -4,11 +4,11 @@ import PropTypes from 'prop-types';
 import Title from '../../components/Title';
 import { styled } from '@mui/material/styles';
 import { useRouter } from 'next/navigation';
-import { GroupDiv } from '../../user/_components/Dashboard';
+import { GroupDiv } from './Dashboard';
 import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
 import { apiClient, QuizListItem } from '@/app/lib/apiClient';
-import QuizCard from './QuizCard';
+import QuizCard from '../../quiz/_components/QuizCard';
 import { useUser } from '@/app/lib/UserContext';
 
 export const Thumbnail = styled('img')`
