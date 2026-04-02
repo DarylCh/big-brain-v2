@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       );
     }
     const email = getEmailFromAuthorization(authHeader);
-    const quizzes = getQuizzesFromAdmin(email);
+    const quizzes = await getQuizzesFromAdmin(email);
     return NextResponse.json({ quizzes });
   } catch (error: unknown) {
     console.error('Error in GET /api/admin/quiz: ', error);

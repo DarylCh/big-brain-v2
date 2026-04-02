@@ -1,6 +1,6 @@
-import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import AsyncLock from 'async-lock';
+import { Redis } from '@upstash/redis';
 import { InputError, AccessError } from './errors';
 
 import {
@@ -21,9 +21,13 @@ import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
 import { QuizListItem } from './apiClient';
 
 const lock = new AsyncLock();
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 const JWT_SECRET = 'llamallamaduck';
-const DATABASE_FILE = './database.json';
+const REDIS_KEY = 'big-brain-db';
 
 /***************************************************************
                        State Management
@@ -32,28 +36,39 @@ const DATABASE_FILE = './database.json';
 let admins: Admins = {};
 let quizzes: Quizzes = {};
 let sessions: Sessions = {};
+let loaded = false;
+
+type DbState = { admins: Admins; quizzes: Quizzes; sessions: Sessions };
+
+const ensureLoaded = async () => {
+  if (loaded) return;
+  try {
+    const data = await redis.get<DbState>(REDIS_KEY);
+    if (data) {
+      admins = data.admins;
+      quizzes = data.quizzes;
+      sessions = data.sessions;
+    }
+  } catch {
+    console.log('WARNING: Could not load from Redis, starting fresh');
+  }
+  loaded = true;
+};
 
 export const update = async (
-  admins: Admins,
-  quizzes: Quizzes,
-  sessions: Sessions
+  newAdmins: Admins,
+  newQuizzes: Quizzes,
+  newSessions: Sessions
 ): Promise<void> => {
   await lock.acquire('saveData', async () => {
     try {
-      fs.writeFileSync(
-        DATABASE_FILE,
-        JSON.stringify(
-          {
-            admins,
-            quizzes,
-            sessions,
-          },
-          null,
-          2
-        )
-      );
+      await redis.set(REDIS_KEY, {
+        admins: newAdmins,
+        quizzes: newQuizzes,
+        sessions: newSessions,
+      });
     } catch (error) {
-      console.error('ERROR: Failed to write to database', error);
+      console.error('ERROR: Failed to write to Redis', error);
       throw new Error('Writing to database failed');
     }
   });
@@ -71,16 +86,6 @@ export const reset = async () => {
   quizzes = {};
   sessions = {};
 };
-
-try {
-  const data = JSON.parse(fs.readFileSync(DATABASE_FILE, 'utf-8'));
-  admins = data.admins;
-  quizzes = data.quizzes;
-  sessions = data.sessions;
-} catch {
-  console.log('WARNING: No database found, create a new one');
-  await save();
-}
 
 /***************************************************************
                        Helper Functions
@@ -112,6 +117,7 @@ const isAnswerAvailable = (session: Session) => {
 const mutateLock = async <T>(callback: () => T | Promise<T>) => {
   let result: T;
   await lock.acquire('sessionMutateLock', async () => {
+    await ensureLoaded();
     result = await callback();
     await save();
   });
@@ -205,8 +211,11 @@ export const assertOwnsQuiz = (email: string, quizId: string) => {
   }
 };
 
-export const getQuizzesFromAdmin = (email: string): QuizListItem[] =>
-  Object.keys(quizzes)
+export const getQuizzesFromAdmin = async (
+  email: string
+): Promise<QuizListItem[]> => {
+  await ensureLoaded();
+  return Object.keys(quizzes)
     .filter((key) => quizzes[key].owner === email)
     .map((key) => ({
       id: parseInt(key, 10),
@@ -218,6 +227,7 @@ export const getQuizzesFromAdmin = (email: string): QuizListItem[] =>
       active: getActiveSessionIdFromQuizId(key),
       oldSessions: getInactiveSessionsIdFromQuizId(key),
     }));
+};
 
 export const addQuiz = async (name: string, email: string) =>
   await mutateLock(() => {
@@ -230,11 +240,14 @@ export const addQuiz = async (name: string, email: string) =>
     }
   });
 
-export const getQuiz = (quizId: string) => ({
-  ...quizzes[quizId],
-  active: getActiveSessionIdFromQuizId(quizId),
-  oldSessions: getInactiveSessionsIdFromQuizId(quizId),
-});
+export const getQuiz = async (quizId: string) => {
+  await ensureLoaded();
+  return {
+    ...quizzes[quizId],
+    active: getActiveSessionIdFromQuizId(quizId),
+    oldSessions: getInactiveSessionsIdFromQuizId(quizId),
+  };
+};
 
 export const updateQuiz = async (
   quizId: string,

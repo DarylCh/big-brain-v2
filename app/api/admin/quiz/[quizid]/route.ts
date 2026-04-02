@@ -24,7 +24,7 @@ export async function GET(
     }
     const email = getEmailFromAuthorization(authHeader);
     assertOwnsQuiz(email, quizId);
-    const quiz = getQuiz(quizId);
+    const quiz = await getQuiz(quizId);
     return NextResponse.json(quiz);
   } catch (error: unknown) {
     console.error('Error in GET quiz:', error);
