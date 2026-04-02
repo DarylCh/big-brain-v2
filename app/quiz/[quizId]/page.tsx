@@ -44,10 +44,10 @@ export default function QuizDetailsPage({
     if (!token) return;
     const sessionPosition = await apiClient.advanceQuiz(token, quizId);
     if (sessionPosition.stage === -2) {
-      setRedirectSnackbar(true);
       setTimeout(() => {
         router.push(`/quiz/${quizId}/session/${quiz?.active}/results`);
       }, 2000);
+      setRedirectSnackbar(true);
     }
 
     refetch();

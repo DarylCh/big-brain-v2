@@ -61,7 +61,6 @@ export default function QuizPanel({
   };
 
   const isActive = !!quiz?.active;
-  console.log('quiz info: ', quiz);
 
   return (
     <GroupDiv style={{ padding: 0, width: '100%' }}>
@@ -97,12 +96,7 @@ export default function QuizPanel({
         variant="stop"
         onConfirm={() => void stopQuiz()}
       />
-      <ActiveSessionBanner
-        quiz={quiz}
-        token={token}
-        quizId={quizId}
-        onAdvance={onAdvance}
-      />
+      <ActiveSessionBanner quiz={quiz} token={token} onAdvance={onAdvance} />
       <Tabs
         value={tab}
         onChange={(_, v: number) => setTab(v)}
