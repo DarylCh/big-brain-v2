@@ -41,7 +41,11 @@ export default function ResultsPage() {
             <Typography variant="h4" fontWeight="bold" color={primaryColor}>
               Your Results
             </Typography>
-            {loading && <CircularProgress />}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress />
+              </Box>
+            )}
             {!loading && (
               <>
                 <Typography variant="h6" color="textSecondary">

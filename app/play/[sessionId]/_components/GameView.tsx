@@ -1,5 +1,5 @@
 'use client';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { PublicQuestionReturn } from '@/app/api/play/[playerid]/question/route';
 import { OptionBox } from './OptionBox';
 import TimerBar from './TimerBar';
@@ -14,6 +14,8 @@ type GameViewProps = {
   correctAnswer: number[] | null;
   gameStarted: boolean;
   gameEnded: boolean;
+  submittingAnswer: boolean;
+  navigatingToResults: boolean;
   onSelectOption: (id: number) => void;
   onSubmitAnswer: () => void;
   onViewResults: () => void;
@@ -30,6 +32,8 @@ export default function GameView({
   correctAnswer,
   gameStarted,
   gameEnded,
+  submittingAnswer,
+  navigatingToResults,
   onSelectOption,
   onSubmitAnswer,
   onViewResults,
@@ -129,16 +133,30 @@ export default function GameView({
           disabled={
             !gameStarted ||
             answerSubmitted ||
+            submittingAnswer ||
             correctAnswer !== null ||
             selected.length === 0
           }
         >
-          Submit
+          {submittingAnswer ? (
+            <CircularProgress size={20} color="inherit" />
+          ) : (
+            'Submit'
+          )}
         </Button>
       )}
       {gameEnded && (
-        <Button variant="contained" color="primary" onClick={onViewResults}>
-          View Results
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={onViewResults}
+          disabled={navigatingToResults}
+        >
+          {navigatingToResults ? (
+            <CircularProgress size={20} color="inherit" />
+          ) : (
+            'View Results'
+          )}
         </Button>
       )}
     </Box>

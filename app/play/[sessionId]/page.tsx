@@ -26,6 +26,8 @@ export default function SessionPage({
     useState<PublicQuestionReturn | null>(null);
   const [loadingQuestion, setLoadingQuestion] = useState(true);
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
+  const [submittingAnswer, setSubmittingAnswer] = useState(false);
+  const [navigatingToResults, setNavigatingToResults] = useState(false);
   const [correctAnswer, setCorrectAnswer] = useState<number[] | null>(null);
   const [gameEnded, setGameEnded] = useState(false);
   const [questionNumber, setQuestionNumber] = useState(0);
@@ -117,11 +119,15 @@ export default function SessionPage({
       return;
     }
 
-    await apiClient.submitPlayerAnswers(playerId, {
-      answerIds: selected,
-    });
-
-    setAnswerSubmitted(true);
+    setSubmittingAnswer(true);
+    try {
+      await apiClient.submitPlayerAnswers(playerId, {
+        answerIds: selected,
+      });
+      setAnswerSubmitted(true);
+    } finally {
+      setSubmittingAnswer(false);
+    }
   }, [playerId, selected]);
 
   // check whether the game has started yet
@@ -214,11 +220,16 @@ export default function SessionPage({
                 correctAnswer={correctAnswer}
                 gameStarted={gameStarted}
                 gameEnded={gameEnded}
+                submittingAnswer={submittingAnswer}
+                navigatingToResults={navigatingToResults}
                 onSelectOption={selectOption}
                 onSubmitAnswer={() => void submitAnswer()}
-                onViewResults={() =>
-                  router.push(`/play/${sessionId}/results?playerId=${playerId}`)
-                }
+                onViewResults={() => {
+                  setNavigatingToResults(true);
+                  router.push(
+                    `/play/${sessionId}/results?playerId=${playerId}`
+                  );
+                }}
               />
             )}
           </Box>
