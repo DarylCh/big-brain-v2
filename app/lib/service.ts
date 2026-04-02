@@ -36,12 +36,10 @@ const REDIS_KEY = 'big-brain-db';
 let admins: Admins = {};
 let quizzes: Quizzes = {};
 let sessions: Sessions = {};
-let loaded = false;
 
 type DbState = { admins: Admins; quizzes: Quizzes; sessions: Sessions };
 
-const ensureLoaded = async () => {
-  if (loaded) return;
+const reload = async () => {
   try {
     const data = await redis.get<DbState>(REDIS_KEY);
     if (data) {
@@ -49,10 +47,7 @@ const ensureLoaded = async () => {
       quizzes = data.quizzes;
       sessions = data.sessions;
     }
-  } catch {
-    console.log('WARNING: Could not load from Redis, starting fresh');
-  }
-  loaded = true;
+  } catch {} // keep current state if Redis unavailable
 };
 
 export const update = async (
@@ -117,7 +112,7 @@ const isAnswerAvailable = (session: Session) => {
 const mutateLock = async <T>(callback: () => T | Promise<T>) => {
   let result: T;
   await lock.acquire('sessionMutateLock', async () => {
-    await ensureLoaded();
+    await reload();
     result = await callback();
     await save();
   });
@@ -214,7 +209,7 @@ export const assertOwnsQuiz = (email: string, quizId: string) => {
 export const getQuizzesFromAdmin = async (
   email: string
 ): Promise<QuizListItem[]> => {
-  await ensureLoaded();
+  await reload();
   return Object.keys(quizzes)
     .filter((key) => quizzes[key].owner === email)
     .map((key) => ({
@@ -241,7 +236,7 @@ export const addQuiz = async (name: string, email: string) =>
   });
 
 export const getQuiz = async (quizId: string) => {
-  await ensureLoaded();
+  await reload();
   return {
     ...quizzes[quizId],
     active: getActiveSessionIdFromQuizId(quizId),
