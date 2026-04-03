@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import ForwardIcon from '@mui/icons-material/Forward';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
+import { AdminGetQuizResponse, apiClient } from '@/app/lib/clients/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 import { CircularProgress } from '@mui/material';
 

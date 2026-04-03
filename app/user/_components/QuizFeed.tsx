@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { GroupDiv } from './Dashboard';
 import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
-import { apiClient, QuizListItem } from '@/app/lib/apiClient';
+import { apiClient, QuizListItem } from '@/app/lib/clients/apiClient';
 import QuizCard from '../../quiz/_components/QuizCard';
 import { useUser } from '@/app/lib/UserContext';
 

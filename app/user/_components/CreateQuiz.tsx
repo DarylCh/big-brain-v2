@@ -4,7 +4,7 @@ import { GroupDiv } from './Dashboard';
 import Title from '@/app/components/Title';
 import { FormControl, TextField } from '@mui/material';
 import FullButton from '@/app/components/FullButton';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { useUser } from '@/app/lib/UserContext';
 
 // This component is used to create a new quiz on the

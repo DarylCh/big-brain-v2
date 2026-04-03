@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import ImageIcon from '@mui/icons-material/Image';
 import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
-import { QuizListItem } from '@/app/lib/apiClient';
+import { QuizListItem } from '@/app/lib/clients/apiClient';
 
 const isValidThumbnail = (thumbnail: string | null) =>
   /^https?:\/\/.+/.test(thumbnail ?? '') ||

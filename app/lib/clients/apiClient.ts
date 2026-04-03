@@ -16,8 +16,8 @@
  * const { token } = await apiClient.login({ email, password });
  * const { quizzes } = await apiClient.getAdminQuizzes(token);
  */
-import { Question, Player, PlayerAnswer } from './types';
-import type { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
+import { Question, Player, PlayerAnswer } from '../types';
+import type { PublicQuestionReturn } from '../../api/play/[playerid]/question/route';
 
 export type ApiError = {
   error: string;

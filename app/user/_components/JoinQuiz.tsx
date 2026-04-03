@@ -5,7 +5,7 @@ import { FormControl, TextField, SxProps, Theme } from '@mui/material';
 import Title from '@/app/components/Title';
 import FullButton from '@/app/components/FullButton';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { useUser } from '@/app/lib/UserContext';
 
 // This component is used to join an existing quiz on the

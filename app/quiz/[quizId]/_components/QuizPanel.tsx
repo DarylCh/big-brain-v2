@@ -7,7 +7,7 @@ import ActiveSessionBanner from './ActiveSessionBanner';
 import SessionsTable from './SessionsTable';
 import QuizDetailCard from './QuizDetailCard';
 import QuizActionsBar from './QuizActionsBar';
-import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
+import { AdminGetQuizResponse, apiClient } from '@/app/lib/clients/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 import { GroupDiv } from '@/app/user/_components/Dashboard';
 

@@ -4,7 +4,7 @@ import { styled } from '@mui/material/styles';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import QuizFeed from '@/app/user/_components/QuizFeed';
 import ErrorPopup from '@/app/components/ErrorPopup';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { useUser } from '@/app/lib/UserContext';
 import CreateQuiz from './CreateQuiz';
 import JoinQuiz from './JoinQuiz';

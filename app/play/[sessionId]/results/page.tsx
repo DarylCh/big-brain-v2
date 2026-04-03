@@ -6,7 +6,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AppNavBar from '@/app/components/AppNavBar';
 import { GroupDiv } from '@/app/user/_components/Dashboard';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 import { PlayerAnswer } from '@/app/lib/types';
 

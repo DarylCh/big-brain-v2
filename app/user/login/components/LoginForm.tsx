@@ -9,7 +9,7 @@ import FullButton from '@/app/components/FullButton';
 import { navLinkStyle } from '@/app/components/AdminNavBar';
 import { useUser } from '@/app/lib/UserContext';
 import { FormControl, TextField } from '@mui/material';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 
 export const CentredTextDiv = styled('div')`

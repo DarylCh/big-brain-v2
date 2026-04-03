@@ -5,7 +5,7 @@ import AppNavBar from '@/app/components/AppNavBar';
 import NewQuestionForm from './_components/NewQuestionForm';
 import EditQuizDetailsForm from './_components/EditQuizDetailsForm';
 import { useRouter } from 'next/navigation';
-import { AdminGetQuizResponse, apiClient } from '@/app/lib/apiClient';
+import { AdminGetQuizResponse, apiClient } from '@/app/lib/clients/apiClient';
 import QuizPanel from './_components/QuizPanel';
 import { Question } from '@/app/lib/types';
 import { useUser } from '@/app/lib/UserContext';

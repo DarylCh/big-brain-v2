@@ -5,7 +5,7 @@ import { BarChart } from '@mui/x-charts/BarChart';
 import AppNavBar from '@/app/components/AppNavBar';
 import { GroupDiv } from '@/app/user/_components/Dashboard';
 import { useUser } from '@/app/lib/UserContext';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 import { Player } from '@/app/lib/types';
 import BackButton from '@/app/components/BackButton';

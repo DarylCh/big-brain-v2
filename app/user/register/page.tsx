@@ -12,7 +12,7 @@ import { navLinkStyle } from '../../components/AdminNavBar';
 import Link from 'next/link';
 import AppNavBar from '../../components/AppNavBar';
 import { FormControl, TextField } from '@mui/material';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import { useUser } from '@/app/lib/UserContext';
 import { primaryColor } from '@/app/lib/colors';
 import { LoginRegPageStyle } from '../login/components/LoginForm';

@@ -5,7 +5,7 @@ import AppNavBar from '@/app/components/AppNavBar';
 import { GroupDiv } from '@/app/user/_components/Dashboard';
 import { PublicQuestionReturn } from '@/app/api/play/[playerid]/question/route';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { apiClient } from '@/app/lib/apiClient';
+import { apiClient } from '@/app/lib/clients/apiClient';
 import LobbyView from './_components/LobbyView';
 import GameView from './_components/GameView';
 

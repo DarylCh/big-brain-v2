@@ -10,7 +10,7 @@ import {
 } from './custom';
 import { Admins, Question, Quiz, Quizzes, Session, Sessions } from './types';
 import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
-import { QuizListItem } from './apiClient';
+import { QuizListItem } from './clients/apiClient';
 
 const lock = new AsyncLock();
 const redis = new Redis({

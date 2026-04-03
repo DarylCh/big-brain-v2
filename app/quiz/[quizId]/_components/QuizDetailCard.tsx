@@ -5,7 +5,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import Image from 'next/image';
 import EditIcon from '@mui/icons-material/Edit';
 import BackButton from '@/app/components/BackButton';
-import { AdminGetQuizResponse } from '@/app/lib/apiClient';
+import { AdminGetQuizResponse } from '@/app/lib/clients/apiClient';
 import { primaryColor } from '@/app/lib/colors';
 
 interface Props {
