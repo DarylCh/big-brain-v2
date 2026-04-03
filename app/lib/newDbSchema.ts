@@ -43,14 +43,9 @@ type Session = {
   active: boolean;
   createdAt: string; // ISO 8601 date string
   updatedAt: string; // ISO 8601 date string
-  // players: {
-  //   id: string;
-  //   name: string;
-  // }[];
 };
 
 type Results = {
-  id: string; // uuid
   session_id: string; // foreign key to Session.id
   player_id: string; // foreign key to User.id
   question_index: number;
