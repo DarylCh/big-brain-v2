@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getQuizzesFromAdmin,
   addQuiz,
-  getEmailFromAuthorization,
+  getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
 export async function GET(request: NextRequest) {
@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
-    const quizzes = await getQuizzesFromAdmin(email);
+    const userId = getUserIdFromAuthorization(authHeader);
+    const quizzes = await getQuizzesFromAdmin(userId);
     return NextResponse.json({ quizzes });
   } catch (error: unknown) {
     console.error('Error in GET /api/admin/quiz: ', error);
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
+    const userId = getUserIdFromAuthorization(authHeader);
     const { name } = await request.json();
-    const quizId = await addQuiz(name, email);
+    const quizId = await addQuiz(name, userId);
     return NextResponse.json({ quizId });
   } catch (error: unknown) {
     console.error('Error in POST /api/admin/quiz: ', error);

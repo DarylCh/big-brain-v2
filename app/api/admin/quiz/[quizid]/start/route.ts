@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   startQuiz,
   assertOwnsQuiz,
-  getEmailFromAuthorization,
+  getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
 export async function POST(
@@ -17,9 +17,9 @@ export async function POST(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
+    const email = getUserIdFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    assertOwnsQuiz(email, quizId);
+    await assertOwnsQuiz(email, quizId);
     await startQuiz(quizId);
 
     return NextResponse.json({});

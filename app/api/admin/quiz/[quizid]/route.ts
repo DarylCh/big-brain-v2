@@ -4,7 +4,7 @@ import {
   updateQuiz,
   removeQuiz,
   assertOwnsQuiz,
-  getEmailFromAuthorization,
+  getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
 export const dynamic = 'force-dynamic';
@@ -22,9 +22,8 @@ export async function GET(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
-    assertOwnsQuiz(email, quizId);
-    const quiz = await getQuiz(quizId);
+    const userId = getUserIdFromAuthorization(authHeader);
+    const quiz = await getQuiz(quizId, userId);
     return NextResponse.json(quiz);
   } catch (error: unknown) {
     console.error('Error in GET quiz:', error);
@@ -54,19 +53,11 @@ export async function PUT(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
-    assertOwnsQuiz(email, quizId);
+    const userId = getUserIdFromAuthorization(authHeader);
+    // await assertOwnsQuiz(email, quizId);
 
-    const { questions, name, thumbnail, description, defaultQuestionDuration } =
-      await request.json();
-    await updateQuiz(
-      quizId,
-      questions,
-      name,
-      thumbnail,
-      description,
-      defaultQuestionDuration
-    );
+    const { questions, name, thumbnail, description } = await request.json();
+    await updateQuiz(userId, quizId, questions, name, thumbnail, description);
     return NextResponse.json({});
   } catch (error: unknown) {
     console.error('Error in PUT /api/admin/quiz/[quizid]:', error);
@@ -93,8 +84,8 @@ export async function DELETE(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
-    assertOwnsQuiz(email, quizId);
+    const email = getUserIdFromAuthorization(authHeader);
+    await assertOwnsQuiz(email, quizId);
     await removeQuiz(quizId);
     return NextResponse.json({});
   } catch (error: unknown) {

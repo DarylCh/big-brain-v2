@@ -3,54 +3,62 @@ type User = {
   name: string;
   email: string;
   passwordHash: string;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
-  removedAt: string | null; // ISO 8601 date string or null if not removed
+  createdAt: Date; // ISO 8601 date string
+  updatedAt: Date; // ISO 8601 date string
+  removedAt: Date | null; // ISO 8601 date string or null if not removed
 };
-
-type Guest = {
-  id: string; // uuid
-  name: string;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
-};
+// constraint: email must be unique
 
 type Quiz = {
   id: string; // uuid
   name: string;
   owner_id: string; // foreign key to User.id
-  description?: string;
-  thumbnail?: string;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
+  description: string | null;
+  thumbnail: string | null; // url
+  createdAt: Date; // ISO 8601 date string
+  updatedAt: Date; // ISO 8601 date string
 };
+// constraint, unique(name, owner_id)
 
 type Question = {
   id: string; // uuid
   quiz_id: string; // foreign key to Quiz.id
+  question: string;
   options: string[];
   correct: number[];
   timeNeededMs: number;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
+  createdAt: Date;
+  updatedAt: Date;
 };
+// constraint: unique(question, quiz_id)
 
 type Session = {
   id: string; // uuid
   quiz_id: string; // foreign key to Quiz.id
   position: number;
-  isoTimeLastQuestionStarted: string | null; // ISO 8601 date string
+  isoTimeLastQuestionStarted: Date | null; // ISO 8601 date string
   active: boolean;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
+  createdAt: Date; // ISO 8601 date string
+  updatedAt: Date; // ISO 8601 date string
 };
+// constraint: only one active session per quiz
 
 type Results = {
-  session_id: string; // foreign key to Session.id
-  player_id: string; // foreign key to User.id
-  question_index: number;
+  session_player_id: string; // foreign key to SessionPlayers.id
+  question_id: string; // foreign key to Question.id
   answer_ids: number[];
   correct: boolean;
-  questionStartedAt: string; // ISO 8601 date string
-  answeredAt: string; // ISO 8601 date string
+  questionStartedAt: Date;
+  answeredAt: Date | null;
 };
+// primary key: (session_player_id, question_id)
+
+type SessionPlayers = {
+  id: string; // uuid
+  session_id: string; // foreign key to Session.id
+  user_id: string | null; // foreign key to User.id, null if guest
+  name: string;
+  joinedAt: Date;
+};
+// primary key: id
+// constraint: unique (session_id, user_id) where user_id is not null

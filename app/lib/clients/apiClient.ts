@@ -39,13 +39,13 @@ export type AuthResponse = {
 };
 
 export type QuizListItem = {
-  id: number;
+  id: string;
   name: string;
   owner: string;
   createdAt: string;
   thumbnail: string | null;
   active: number | null;
-  oldSessions: number[];
+  oldSessions: string[];
   numQuestions: number;
 };
 

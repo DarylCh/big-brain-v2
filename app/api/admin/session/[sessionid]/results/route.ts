@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   sessionResults,
   assertOwnsSession,
-  getEmailFromAuthorization,
+  getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
 export async function GET(
@@ -17,9 +17,9 @@ export async function GET(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
+    const userId = getUserIdFromAuthorization(authHeader);
     const { sessionid: sessionId } = await params;
-    await assertOwnsSession(email, sessionId);
+    await assertOwnsSession(userId, sessionId);
     const results = sessionResults(sessionId);
     return NextResponse.json({ results });
   } catch (error: unknown) {

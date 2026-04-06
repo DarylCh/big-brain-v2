@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logout, getEmailFromAuthorization } from '@/app/lib/service';
+import { logout, getUserIdFromAuthorization } from '@/app/lib/service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
-    await logout(email);
+    const userId = getUserIdFromAuthorization(authHeader);
+    await logout(userId);
     return NextResponse.json({});
   } catch (error: unknown) {
     console.error('Error in POST /api/admin/auth/logout:', error);

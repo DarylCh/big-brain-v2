@@ -2,7 +2,7 @@ import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   assertOwnsQuiz,
-  getEmailFromAuthorization,
+  getUserIdFromAuthorization,
   updateQuiz,
 } from '@/app/lib/service';
 
@@ -21,8 +21,8 @@ export async function POST(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
-    assertOwnsQuiz(email, quizId);
+    const email = getUserIdFromAuthorization(authHeader);
+    await assertOwnsQuiz(email, quizId);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

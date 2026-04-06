@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import AsyncLock from 'async-lock';
 import { Redis } from '@upstash/redis';
+import bcrypt from 'bcryptjs';
+import { dbMutateSingle, dbQuery } from './clients/dbClient';
 import { InputError, AccessError } from './errors';
 
 import {
@@ -8,22 +10,34 @@ import {
   quizQuestionGetCorrectAnswers,
   quizQuestionGetDuration,
 } from './custom';
-import { Admins, Question, Quiz, Quizzes, Session, Sessions } from './types';
+import { Admins, Question, Quizzes, Session, Sessions } from './types';
 import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
 import { QuizListItem } from './clients/apiClient';
+import { QuestionRow, SessionRow } from './database/dbTypes';
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
+
+// TODO: REVIEW - Remove Redis/AsyncLock once all functions are migrated to Neon
 const lock = new AsyncLock();
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
-
-const JWT_SECRET = 'llamallamaduck';
-const REDIS_KEY = 'big-brain-db';
+const REDIS_KEY = process.env.REDIS_KEY!;
 
 /***************************************************************
                        State Management
-***************************************************************/
+ * TODO: REVIEW - Remove this entire block once all functions below
+ * are migrated to Neon. Redis, AsyncLock, reload/persist/update/save/reset
+ * are only needed by unmigrated functions.
+ ***************************************************************/
 
 let admins: Admins = {};
 let quizzes: Quizzes = {};
@@ -87,10 +101,12 @@ export const reset = async () => {
 
 /***************************************************************
                        Helper Functions
-***************************************************************/
+ * TODO: REVIEW - newSessionId, newQuizId, newPlayerId, mutateLock,
+ * copy, randNum, generateId can all be removed once all functions
+ * are migrated to Neon. isAnswerAvailable needs rewriting to query DB.
+ ***************************************************************/
 
 const newSessionId = () => generateId(Object.keys(sessions), 999999);
-const newQuizId = () => generateId(Object.keys(quizzes));
 const newPlayerId = () =>
   generateId(
     Object.keys(sessions)
@@ -141,151 +157,267 @@ const generateId = (currentList: string[], max = 999999999) => {
                        Auth Functions
 ***************************************************************/
 
-export const getEmailFromAuthorization = (authorization: string) => {
+export const getUserIdFromAuthorization = (authorization: string): string => {
   try {
     const token = authorization.replace('Bearer ', '');
-    const { email } = jwt.verify(token, JWT_SECRET) as { email: string };
-    if (!(email in admins)) {
-      throw new AccessError('Email not found in admins list');
-    }
-    return email;
+    const { userId } = jwt.verify(token, JWT_SECRET) as { userId: string };
+    return userId;
   } catch (error: unknown) {
-    console.error('Error in getEmailFromAuthorization: ', error);
+    console.error('Error in getUserIdFromAuthorization: ', error);
     throw new AccessError('Invalid token');
   }
 };
 
-export const login = async (email: string, password: string) =>
-  await mutateLock(() => {
-    if (email in admins) {
-      if (admins[email].password === password) {
-        admins[email].sessionActive = true;
-        return jwt.sign({ email, name: admins[email].name }, JWT_SECRET, {
-          algorithm: 'HS256',
-        });
-      }
-    }
+export const login = async (
+  email: string,
+  password: string
+): Promise<string> => {
+  const rows = await dbMutateSingle<{ id: string; name: string; password_hash: string }>`
+    SELECT id, name, password_hash FROM users WHERE email = ${email} AND removed_at IS NULL
+  `;
+  if (rows.length === 0) {
     throw new InputError('Invalid username or password');
+  }
+  const user = rows[0];
+  const valid = await bcrypt.compare(password, user.password_hash as string);
+  if (!valid) {
+    throw new InputError('Invalid username or password');
+  }
+  return jwt.sign({ userId: user.id, name: user.name }, JWT_SECRET, {
+    algorithm: 'HS256',
   });
+};
 
-export const logout = async (email: string) =>
-  await mutateLock(() => {
-    admins[email].sessionActive = false;
-  });
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const logout = async (_userId: string): Promise<void> => {
+  // JWT is stateless — no server-side session to invalidate
+};
 
-export const register = async (email: string, password: string, name: string) =>
-  await mutateLock(() => {
-    if (email in admins) {
-      throw new InputError('Email address already registered');
-    }
-    admins[email] = {
-      name,
-      password,
-      sessionActive: true,
-    };
-    return jwt.sign({ email, name }, JWT_SECRET, { algorithm: 'HS256' });
+export const register = async (
+  email: string,
+  password: string,
+  name: string
+): Promise<string> => {
+  const existing = await dbMutateSingle`SELECT id FROM users WHERE email = ${email}`;
+  if (existing.length > 0) {
+    throw new InputError('Email address already registered');
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  const result = await dbMutateSingle<{ id: string; name: string }>`
+    INSERT INTO users (name, email, password_hash) VALUES (${name}, ${email}, ${passwordHash})
+    RETURNING id, name
+  `;
+  if (result.length === 0) {
+    throw new Error('User registration failed');
+  }
+  return jwt.sign({ userId: result[0].id, name: result[0].name }, JWT_SECRET, {
+    algorithm: 'HS256',
   });
+};
 
 /***************************************************************
                        Quiz Functions
 ***************************************************************/
 
-const newQuizPayload = (name: string, owner: string): Quiz => ({
-  name,
-  owner,
-  description: null,
-  defaultQuestionDuration: null,
-  questions: [],
-  thumbnail: null,
-  active: null,
-  createdAt: new Date().toISOString(),
-});
+// const newQuizPayload = (name: string, owner: string): Quiz => ({
+//   name,
+//   owner,
+//   description: null,
+//   defaultQuestionDuration: null,
+//   questions: [],
+//   thumbnail: null,
+//   active: null,
+//   createdAt: new Date().toISOString(),
+// });
 
-export const assertOwnsQuiz = (email: string, quizId: string) => {
-  if (!(quizId in quizzes)) {
-    throw new InputError('Invalid quiz ID');
-  } else if (quizzes[quizId].owner !== email) {
-    throw new InputError('Admin does not own this Quiz');
+export const assertOwnsQuiz = async (
+  userId: string,
+  quizId: string
+): Promise<void> => {
+  const rows = await dbQuery<{ id: string }, string>(
+    `SELECT id FROM quizzes WHERE id = $1 AND owner_id = $2`,
+    [quizId, userId]
+  );
+
+  if (rows.length === 0) {
+    throw new InputError('Quiz not found or you do not own this quiz');
   }
 };
 
+// TODO: REVIEW - Needs migration: query quizzes JOIN sessions.
+// Return type QuizListItem uses numeric IDs/active; update to UUIDs.
 export const getQuizzesFromAdmin = async (
-  email: string
+  userId: string
 ): Promise<QuizListItem[]> => {
-  await reload();
-  return Object.keys(quizzes)
-    .filter((key) => quizzes[key].owner === email)
-    .map((key) => ({
-      id: parseInt(key, 10),
-      createdAt: quizzes[key].createdAt,
-      name: quizzes[key].name,
-      thumbnail: quizzes[key].thumbnail,
-      owner: quizzes[key].owner,
-      numQuestions: quizzes[key].questions.length,
-      active: getActiveSessionIdFromQuizId(key),
-      oldSessions: getInactiveSessionsIdFromQuizId(key),
-    }));
+  const quizzes = await dbQuery<
+    {
+      id: string;
+      name: string;
+      owner_id: string;
+      description: string | null;
+      thumbnail: string | null;
+      created_at: string;
+      updated_at: string;
+    },
+    string
+  >(
+    `SELECT * FROM quizzes q
+    WHERE owner_id = $1`,
+    [userId]
+  );
+  const foundQuizIds = quizzes.map((q) => q.id);
+  const [sessions, questions] = await Promise.all([
+    dbQuery<
+      {
+        id: string;
+        quiz_id: string;
+        active: boolean;
+        created_at: string;
+        updated_at: string;
+      },
+      string[]
+    >(`SELECT * FROM sessions where quiz_id = ANY($1)`, [foundQuizIds]),
+    dbQuery<
+      {
+        id: string;
+        quiz_id: string;
+        question_text: string;
+        created_at: string;
+        updated_at: string;
+      },
+      string[]
+    >(`SELECT * FROM questions where quiz_id = ANY($1)`, [foundQuizIds]),
+  ]);
+
+  return quizzes.map((quiz) => ({
+    id: quiz.id,
+    createdAt: quiz.created_at,
+    name: quiz.name,
+    thumbnail: quiz.thumbnail,
+    owner: quiz.owner_id,
+    numQuestions: questions.filter((q) => q.quiz_id === quiz.id).length,
+    active: sessions.filter((s) => s.quiz_id === quiz.id && s.active).length,
+    oldSessions: sessions
+      .filter((s) => s.quiz_id === quiz.id && !s.active)
+      .map((s) => s.id),
+  }));
 };
 
-export const addQuiz = async (name: string, email: string) =>
-  await mutateLock(() => {
-    if (name === undefined) {
-      throw new InputError('Must provide a name for new quiz');
-    } else {
-      const newId = newQuizId();
-      quizzes[newId] = newQuizPayload(name, email);
-      return newId;
-    }
-  });
+export const addQuiz = async (
+  name: string,
+  userId: string
+): Promise<string> => {
+  if (!name) {
+    throw new InputError('Must provide a name for new quiz');
+  }
+  const result = await dbMutateSingle<{ id: string }>`
+    INSERT INTO quizzes (name, owner_id) VALUES (${name}, ${userId}) RETURNING id
+  `;
+  return result[0].id as string;
+};
 
-export const getQuiz = async (quizId: string) => {
-  await reload();
+// TODO: REVIEW - Needs migration: SELECT quizzes + questions JOIN + active/inactive sessions query.
+export const getQuiz = async (
+  quizId: string,
+  userId: string
+): Promise<{
+  active: string | null;
+  oldSessions: string[];
+  name: string;
+  owner: string;
+  description: string | null;
+  questions: Question[];
+  thumbnail: string | null;
+  createdAt: string;
+}> => {
+  const quiz = await dbQuery<
+    {
+      id: string;
+      name: string;
+      owner_id: string;
+      description: string | null;
+      default_question_duration: number | null;
+      thumbnail: string | null;
+      created_at: string;
+    },
+    string
+  >(`SELECT * FROM quizzes WHERE id = $1 AND owner_id = $2`, [quizId, userId]);
+
+  if (!quiz[0]) {
+    throw new InputError('Quiz not found or you do not own this quiz');
+  }
+
+  const [sessions, questions] = await Promise.all([
+    dbQuery<SessionRow, string>(`SELECT * FROM sessions where quiz_id = $1`, [
+      quiz[0].id,
+    ]),
+    dbQuery<QuestionRow, string>(`SELECT * FROM questions where quiz_id = $1`, [
+      quiz[0].id,
+    ]),
+  ]);
+
   return {
-    ...quizzes[quizId],
-    active: getActiveSessionIdFromQuizId(quizId),
-    oldSessions: getInactiveSessionsIdFromQuizId(quizId),
+    name: quiz[0].name,
+    owner: quiz[0].owner_id,
+    description: quiz[0].description,
+    questions: questions.length
+      ? questions.map((q) => ({
+          question: q.question,
+          options: q.options,
+          Correct: q.correct,
+          timeNeeded: q.time_needed_ms,
+        }))
+      : [],
+    thumbnail: quiz[0].thumbnail,
+    createdAt: quiz[0].created_at,
+    active:
+      sessions.find((s) => s.quiz_id === quiz[0].id && s.active)?.id ?? null,
+    oldSessions: sessions
+      .filter((s) => s.quiz_id === quiz[0].id && !s.active)
+      .map((s) => s.id),
   };
 };
 
 export const updateQuiz = async (
+  userId: string,
   quizId: string,
   questions?: Question[],
   name?: string,
   thumbnail?: string,
-  description?: string,
-  defaultQuestionDuration?: number | null
-) =>
-  await mutateLock(() => {
-    if (questions) {
-      quizzes[quizId].questions = questions;
-    }
-    if (name) {
-      quizzes[quizId].name = name;
-    }
-    if (thumbnail) {
-      quizzes[quizId].thumbnail = thumbnail;
-    }
-    if (description !== undefined) {
-      quizzes[quizId].description = description;
-    }
-    if (defaultQuestionDuration !== undefined) {
-      quizzes[quizId].defaultQuestionDuration = defaultQuestionDuration;
-    }
-  });
+  description?: string
+): Promise<void> => {
+  await dbMutateSingle`
+    UPDATE quizzes SET
+      name        = COALESCE(${name ?? null}, name),
+      thumbnail   = COALESCE(${thumbnail ?? null}, thumbnail),
+      description = COALESCE(${description ?? null}, description),
+      updated_at  = NOW()
+    WHERE id = ${quizId} AND owner_id = ${userId}
+  `;
 
-export const removeQuiz = async (quizId: string) =>
-  await mutateLock(() => {
-    if (quizHasActiveSession(quizId)) {
-      throw new InputError('Cannot delete a quiz with an active session');
-    }
-    Object.keys(sessions).forEach((s) => {
-      if (sessions[s].quizId === quizId) {
-        delete sessions[s];
+  if (questions !== undefined) {
+    await dbMutateSingle`DELETE FROM questions WHERE quiz_id = ${quizId}`;
+    if (questions.length > 0) {
+      for (const q of questions) {
+        await dbMutateSingle`
+          INSERT INTO questions (quiz_id, question, options, correct, time_needed_ms)
+          VALUES (${quizId}, ${q.question}, ${q.options}, ${q.Correct}, ${q.timeNeeded})
+        `;
       }
-    });
-    delete quizzes[quizId];
-  });
+    }
+  }
+};
 
+export const removeQuiz = async (quizId: string): Promise<void> => {
+  const active = await dbMutateSingle`SELECT id FROM sessions WHERE quiz_id = ${quizId} AND active = true`;
+  if (active.length > 0) {
+    throw new InputError('Cannot delete a quiz with an active session');
+  }
+  await dbMutateSingle`DELETE FROM quizzes WHERE id = ${quizId}`;
+};
+
+// TODO: REVIEW - Needs migration: check question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
+// INSERT INTO sessions; session no longer stores a copy of questions.
 export const startQuiz = async (quizId: string) =>
   await mutateLock(() => {
     if (quizHasActiveSession(quizId)) {
@@ -299,6 +431,9 @@ export const startQuiz = async (quizId: string) =>
     return id;
   });
 
+// TODO: REVIEW - Needs migration: player count via SELECT COUNT(*) FROM session_players;
+// question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
+// UPDATE sessions SET position, iso_time_last_question_started.
 export const advanceQuiz = async (quizId: string) =>
   await mutateLock(async () => {
     const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
@@ -322,18 +457,24 @@ export const advanceQuiz = async (quizId: string) =>
     }
   });
 
-export const endQuiz = async (quizId: string) =>
-  await mutateLock(() => {
-    const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
-    if (!sessionObject) {
-      throw new InputError('Quiz has no active session');
-    }
-    sessionObject.session.active = false;
-  });
+export const endQuiz = async (quizId: string): Promise<void> => {
+  const result = await dbMutateSingle<{ id: string }>`
+    UPDATE sessions SET active = false, updated_at = NOW()
+    WHERE quiz_id = ${quizId} AND active = true
+    RETURNING id
+  `;
+  if (result.length === 0) {
+    throw new InputError('Quiz has no active session');
+  }
+};
 
 /***************************************************************
                        Session Functions
-***************************************************************/
+ * TODO: REVIEW - quizHasActiveSession, getActiveSessionFromQuizIdThrow,
+ * getActiveSessionIdFromQuizId, getInactiveSessionsIdFromQuizId,
+ * getActiveSessionFromSessionId, sessionIdFromPlayerId, newSessionPayload,
+ * newPlayerPayload — all need rewriting as DB queries or can be removed.
+ ***************************************************************/
 
 const quizHasActiveSession = (quizId: string) =>
   Object.keys(sessions).filter(
@@ -408,6 +549,8 @@ const newPlayerPayload = (name: string, numQuestions: number) => ({
   }),
 });
 
+// TODO: REVIEW - Needs migration: JOIN sessions + questions (separate table) + session_players.
+// Position -1 convention needs to be handled (DB defaults to 0; define not-started sentinel).
 export const sessionStatus = (sessionId: string) => {
   const session = sessions[sessionId];
   return {
@@ -422,10 +565,14 @@ export const sessionStatus = (sessionId: string) => {
   };
 };
 
+// TODO: REVIEW - Needs migration: SELECT sessions WHERE session_players.id = sessionPlayerId,
+// then verify quiz ownership via quizzes JOIN users.
 export const assertOwnsSession = async (email: string, sessionId: string) => {
   await assertOwnsQuiz(email, sessions[sessionId].quizId);
 };
 
+// TODO: REVIEW - Needs migration: SELECT results JOIN session_players WHERE session_id.
+// Completely restructured from players[].answers to results table rows.
 export const sessionResults = (sessionId: string) => {
   const session = sessions[sessionId];
   if (session.active) {
@@ -435,6 +582,9 @@ export const sessionResults = (sessionId: string) => {
   }
 };
 
+// TODO: REVIEW - Needs migration: INSERT INTO session_players (session_id, user_id, name).
+// user_id should come from JWT if logged in, null for guests.
+// Returns session_players.id (UUID) as the new playerId.
 export const playerJoin = async (name: string, sessionId: string) =>
   await mutateLock(() => {
     if (name === undefined) {
@@ -451,6 +601,8 @@ export const playerJoin = async (name: string, sessionId: string) =>
     }
   });
 
+// TODO: REVIEW - Needs migration: SELECT iso_time_last_question_started FROM sessions
+// via JOIN session_players WHERE session_players.id = playerId.
 export const hasStarted = (playerId: string) => {
   const session = getActiveSessionFromSessionId(
     sessionIdFromPlayerId(playerId)
@@ -462,6 +614,8 @@ export const hasStarted = (playerId: string) => {
   }
 };
 
+// TODO: REVIEW - Needs migration: look up session via session_players.id, then
+// SELECT question at sessions.position from questions WHERE quiz_id ORDER BY created_at.
 export const getQuestion = (playerId: string): Promise<PublicQuestionReturn> =>
   Promise.resolve().then(() => {
     const session = getActiveSessionFromSessionId(
@@ -478,6 +632,8 @@ export const getQuestion = (playerId: string): Promise<PublicQuestionReturn> =>
     }
   });
 
+// TODO: REVIEW - Needs migration: same session/question lookup as getQuestion;
+// return correct[] from questions table for current position.
 export const getAnswers = (playerId: string) => {
   const session = getActiveSessionFromSessionId(
     sessionIdFromPlayerId(playerId)
@@ -491,6 +647,9 @@ export const getAnswers = (playerId: string) => {
   }
 };
 
+// TODO: REVIEW - Needs migration: INSERT INTO results (session_player_id, question_id,
+// answer_ids, correct, question_started_at, answered_at).
+// Look up session_player_id from playerId, question_id from current session position.
 export const submitAnswers = async (playerId: string, answerIds: number[]) =>
   await mutateLock(() => {
     if (answerIds === undefined || answerIds.length === 0) {
@@ -519,6 +678,8 @@ export const submitAnswers = async (playerId: string, answerIds: number[]) =>
     }
   });
 
+// TODO: REVIEW - Needs migration: SELECT results WHERE session_player_id = playerId
+// JOIN questions to include question text/options in return value.
 export const getResults = (playerId: string) => {
   const session = sessions[sessionIdFromPlayerId(playerId)];
   if (session.active) {

@@ -3,7 +3,7 @@ import {
   advanceQuiz,
   assertOwnsQuiz,
   endQuiz,
-  getEmailFromAuthorization,
+  getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
 export async function POST(
@@ -18,9 +18,9 @@ export async function POST(
         { status: 403 }
       );
     }
-    const email = getEmailFromAuthorization(authHeader);
+    const email = getUserIdFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    assertOwnsQuiz(email, quizId);
+    await assertOwnsQuiz(email, quizId);
     const stage = await advanceQuiz(quizId);
     if (stage === -2) {
       console.log(
