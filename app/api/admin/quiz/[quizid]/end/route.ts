@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  endQuiz,
-  assertOwnsQuiz,
-  getUserIdFromAuthorization,
-} from '@/app/lib/service';
+import { endQuiz, getUserIdFromAuthorization } from '@/app/lib/service';
 
 export async function POST(
   request: NextRequest,
@@ -19,8 +15,7 @@ export async function POST(
     }
     const userId = getUserIdFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    await assertOwnsQuiz(userId, quizId);
-    await endQuiz(quizId);
+    await endQuiz(quizId, userId);
     return NextResponse.json({});
   } catch (error: unknown) {
     console.error('Error in POST /api/admin/quiz/[quizid]/end:', error);

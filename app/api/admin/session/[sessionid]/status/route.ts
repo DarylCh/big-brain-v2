@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  sessionStatus,
-  assertOwnsSession,
-  getUserIdFromAuthorization,
-} from '@/app/lib/service';
+import { sessionStatus, getUserIdFromAuthorization } from '@/app/lib/service';
 
 export async function GET(
   request: NextRequest,
@@ -19,8 +15,7 @@ export async function GET(
     }
     const userId = getUserIdFromAuthorization(authHeader);
     const { sessionid: sessionId } = await params;
-    await assertOwnsSession(userId, sessionId);
-    const results = sessionStatus(sessionId);
+    const results = sessionStatus(sessionId, userId);
     return NextResponse.json({ results });
   } catch (error: unknown) {
     console.error(

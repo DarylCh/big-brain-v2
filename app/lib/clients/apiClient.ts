@@ -334,7 +334,12 @@ export const apiClient = {
    * @param body - Partial update: { question?, options?, correct?, timeNeededMs? }
    * @returns { id } - ID of the updated question
    */
-  updateQuestion: (token: string, quizId: string, questionId: string, body: UpdateQuestionRequest) =>
+  updateQuestion: (
+    token: string,
+    quizId: string,
+    questionId: string,
+    body: UpdateQuestionRequest
+  ) =>
     requestJson<UpdateQuestionResponse>(
       `/api/admin/quiz/${encodeURIComponent(quizId)}/question/${encodeURIComponent(questionId)}`,
       {
@@ -366,10 +371,10 @@ export const apiClient = {
    * Starts a new session for the given quiz. Players can now join.
    * @param token - Bearer token of the authenticated admin
    * @param quizId - ID of the quiz to start
-   * @returns {} - Empty object on success
+   * @returns { sessionId } - ID of the newly created session
    */
   startQuiz: (token: string, quizId: string) =>
-    requestJson<Record<string, never>>(
+    requestJson<{ sessionId: string }>(
       `/api/admin/quiz/${encodeURIComponent(quizId)}/start`,
       {
         method: 'POST',

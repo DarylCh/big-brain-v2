@@ -34,6 +34,7 @@ export type QuestionRow = {
 export type SessionRow = {
   id: string;
   quiz_id: string;
+  admin_id: string;
   position: number;
   iso_time_last_question_started: Date | null;
   active: boolean;

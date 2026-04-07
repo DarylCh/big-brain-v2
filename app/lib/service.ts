@@ -13,7 +13,7 @@ import {
 import { Admins, Question, Quizzes, Session, Sessions } from './types';
 import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
 import { QuizListItem } from './clients/apiClient';
-import { QuestionRow, SessionRow } from './database/dbTypes';
+import { QuestionRow, QuizRow, SessionRow } from './database/dbTypes';
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET is not defined in environment variables');
@@ -106,7 +106,6 @@ export const reset = async () => {
  * are migrated to Neon. isAnswerAvailable needs rewriting to query DB.
  ***************************************************************/
 
-const newSessionId = () => generateId(Object.keys(sessions), 999999);
 const newPlayerId = () =>
   generateId(
     Object.keys(sessions)
@@ -114,12 +113,17 @@ const newPlayerId = () =>
       .flat()
   );
 
-const isAnswerAvailable = (session: Session) => {
-  if (session.position === -1 || session.isoTimeLastQuestionStarted === null) {
+const isAnswerAvailable = (session: SessionRow) => {
+  if (
+    session.position === -1 ||
+    session.iso_time_last_question_started === null
+  ) {
     return false;
   }
 
-  const startedAtMs = new Date(session.isoTimeLastQuestionStarted).getTime();
+  const startedAtMs = new Date(
+    session.iso_time_last_question_started
+  ).getTime();
   if (Number.isNaN(startedAtMs)) {
     return false;
   }
@@ -128,6 +132,7 @@ const isAnswerAvailable = (session: Session) => {
     quizQuestionGetDuration(session.questions[session.position]) * 1000;
   return Date.now() >= startedAtMs + durationMs;
 };
+
 const mutateLock = async <T>(callback: () => T | Promise<T>) => {
   let result: T;
   await lock.acquire('db', async () => {
@@ -226,31 +231,6 @@ export const register = async (
                        Quiz Functions
 ***************************************************************/
 
-// const newQuizPayload = (name: string, owner: string): Quiz => ({
-//   name,
-//   owner,
-//   description: null,
-//   defaultQuestionDuration: null,
-//   questions: [],
-//   thumbnail: null,
-//   active: null,
-//   createdAt: new Date().toISOString(),
-// });
-
-export const assertOwnsQuiz = async (
-  userId: string,
-  quizId: string
-): Promise<void> => {
-  const rows = await dbQuery<{ id: string }, string>(
-    `SELECT id FROM quizzes WHERE id = $1 AND owner_id = $2`,
-    [quizId, userId]
-  );
-
-  if (rows.length === 0) {
-    throw new InputError('Quiz not found or you do not own this quiz');
-  }
-};
-
 // TODO: REVIEW - Needs migration: query quizzes JOIN sessions.
 // Return type QuizListItem uses numeric IDs/active; update to UUIDs.
 export const getQuizzesFromAdmin = async (
@@ -337,18 +317,11 @@ export const getQuiz = async (
   thumbnail: string | null;
   createdAt: string;
 }> => {
-  const quiz = await dbQuery<
-    {
-      id: string;
-      name: string;
-      owner_id: string;
-      description: string | null;
-      default_question_duration: number | null;
-      thumbnail: string | null;
-      created_at: string;
-    },
-    string
-  >(`SELECT * FROM quizzes WHERE id = $1 AND owner_id = $2`, [quizId, userId]);
+  console.log('Getting quiz with ID:', quizId, 'for user ID:', userId);
+  const quiz = await dbQuery<QuizRow, string>(
+    `SELECT * FROM quizzes WHERE id = $1 AND owner_id = $2`,
+    [quizId, userId]
+  );
 
   if (!quiz[0]) {
     throw new InputError('Quiz not found or you do not own this quiz');
@@ -377,7 +350,7 @@ export const getQuiz = async (
         }))
       : [],
     thumbnail: quiz[0].thumbnail,
-    createdAt: quiz[0].created_at,
+    createdAt: quiz[0].created_at.toISOString(),
     active:
       sessions.find((s) => s.quiz_id === quiz[0].id && s.active)?.id ?? null,
     oldSessions: sessions
@@ -475,18 +448,26 @@ export const removeQuestion = async (
 
 // TODO: REVIEW - Needs migration: check question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
 // INSERT INTO sessions; session no longer stores a copy of questions.
-export const startQuiz = async (quizId: string) =>
-  await mutateLock(() => {
-    if (quizHasActiveSession(quizId)) {
-      throw new InputError('Quiz already has active session');
-    }
-    if (!quizzes[quizId].questions.length) {
-      throw new InputError('Cannot start a quiz with no questions');
-    }
-    const id = newSessionId();
-    sessions[id] = newSessionPayload(quizId);
-    return id;
-  });
+export const startNewQuizSession = async (quizId: string, userId: string) => {
+  // Check if quiz has active session
+  const quiz = await getQuiz(quizId, userId);
+
+  if (quiz.questions.length === 0) {
+    throw new InputError('Cannot start a quiz with no questions');
+  }
+
+  if (quiz.active) {
+    throw new InputError('Quiz already has active session');
+  }
+
+  const mutation = await dbMutateSingle<{ id: string }>`
+    INSERT INTO sessions (quiz_id, user_id, active)
+    VALUES (${quizId}, ${userId}, true)
+    RETURNING id
+  `;
+
+  return mutation[0].id;
+};
 
 // TODO: REVIEW - Needs migration: player count via SELECT COUNT(*) FROM session_players;
 // question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
@@ -532,6 +513,18 @@ export const endQuiz = async (quizId: string): Promise<void> => {
  * getActiveSessionFromSessionId, sessionIdFromPlayerId, newSessionPayload,
  * newPlayerPayload — all need rewriting as DB queries or can be removed.
  ***************************************************************/
+export const getSession = async (sessionId: string) => {
+  const query = await dbQuery<SessionRow, string>(
+    `SELECT * FROM sessions WHERE id = $1`,
+    [sessionId]
+  );
+
+  if (query.length === 0) {
+    throw new InputError('Session not found');
+  }
+
+  return query[0];
+};
 
 const quizHasActiveSession = (quizId: string) =>
   Object.keys(sessions).filter(
@@ -582,14 +575,14 @@ const sessionIdFromPlayerId = (playerId: string) => {
   throw new InputError('Player ID does not refer to valid player id');
 };
 
-const newSessionPayload = (quizId: string) => ({
-  quizId,
-  position: -1,
-  isoTimeLastQuestionStarted: null,
-  players: {},
-  questions: copy(quizzes[quizId].questions),
-  active: true,
-});
+// const newSessionPayload = (quizId: string) => ({
+//   quizId,
+//   position: -1,
+//   isoTimeLastQuestionStarted: null,
+//   players: {},
+//   questions: copy(quizzes[quizId].questions),
+//   active: true,
+// });
 
 const newPlayerPayload = (name: string, numQuestions: number) => ({
   name: name,
@@ -603,17 +596,26 @@ const newPlayerPayload = (name: string, numQuestions: number) => ({
 
 // TODO: REVIEW - Needs migration: JOIN sessions + questions (separate table) + session_players.
 // Position -1 convention needs to be handled (DB defaults to 0; define not-started sentinel).
-export const sessionStatus = (sessionId: string) => {
-  const session = sessions[sessionId];
+export const sessionStatus = async (sessionId: string, userId: string) => {
+  const session = await getSession(sessionId);
+
+  if (session.user_id !== userId) {
+    throw new AccessError('You do not have access to this session');
+  }
+
+  if (!session.active) {
+    throw new InputError('Session is not active');
+  }
+
   return {
     active: session.active,
     answerAvailable: isAnswerAvailable(session),
-    isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
+    isoTimeLastQuestionStarted: session.iso_time_last_question_started,
     position: session.position,
-    questions: session.questions,
-    players: Object.keys(session.players).map(
-      (player) => session.players[player].name
-    ),
+    // TODO: fix
+    questions: [],
+    // TODO: fix
+    players: [],
   };
 };
 

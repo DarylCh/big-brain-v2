@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  startQuiz,
-  assertOwnsQuiz,
+  startNewQuizSession,
   getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
@@ -19,10 +18,9 @@ export async function POST(
     }
     const userId = getUserIdFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    await assertOwnsQuiz(userId, quizId);
-    await startQuiz(quizId);
+    const sessionId = await startNewQuizSession(quizId, userId);
 
-    return NextResponse.json({});
+    return NextResponse.json({ sessionId });
   } catch (error: unknown) {
     console.error('Error in POST /api/admin/quiz/[quizid]/start: ', error);
     if (error instanceof Error && error.name === 'AccessError') {
