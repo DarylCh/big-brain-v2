@@ -18,7 +18,6 @@ export const dbQuery = async <T, R>(
   params: R[] | undefined
 ): Promise<T[]> => {
   try {
-    console.log('Executing query:', query, 'with params:', params);
     const result = await db.query(query, params);
     return result as T[];
   } catch (error) {
@@ -45,7 +44,6 @@ export const dbMutation = async <T>(
   params?: HTTPTransactionOptions<false, false>
 ): Promise<Record<string, T>[][]> => {
   try {
-    // const res = sql.transaction
     const result = await db.transaction([sql], params);
     return result[0] as Record<string, T>[][];
   } catch (error) {

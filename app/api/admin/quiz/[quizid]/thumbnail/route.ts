@@ -1,9 +1,9 @@
 import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  assertOwnsQuiz,
   getUserIdFromAuthorization,
   updateQuiz,
+  getQuiz,
 } from '@/app/lib/service';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,11 @@ export async function POST(
       );
     }
     const userId = getUserIdFromAuthorization(authHeader);
-    await assertOwnsQuiz(userId, quizId);
+    const quiz = await getQuiz(quizId, userId);
+
+    if (quiz.thumbnail) {
+      return NextResponse.json({ url: quiz.thumbnail });
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -41,9 +45,10 @@ export async function POST(
     const blob = await put(`quiz-thumbnails/${quizId}/${file.name}`, file, {
       access: 'public',
       contentType: file.type,
+      allowOverwrite: true,
     });
 
-    await updateQuiz(userId, quizId, blob.url);
+    await updateQuiz(userId, quizId, undefined, blob.url);
 
     return NextResponse.json({ url: blob.url });
   } catch (error: unknown) {

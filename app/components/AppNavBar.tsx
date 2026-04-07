@@ -12,7 +12,7 @@ const AppNavBar = () => {
       <nav>
         <div id="navBar" style={navStyle}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
-            BigBrain
+            BigBrain.v2
           </Typography>
           {token && (
             <div style={{ display: 'flex', alignItems: 'center' }}>

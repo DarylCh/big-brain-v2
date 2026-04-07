@@ -303,7 +303,7 @@ export const getQuizzesFromAdmin = async (
     thumbnail: quiz.thumbnail,
     owner: quiz.owner_id,
     numQuestions: questions.filter((q) => q.quiz_id === quiz.id).length,
-    active: sessions.filter((s) => s.quiz_id === quiz.id && s.active).length,
+    active: sessions.find((s) => s.quiz_id === quiz.id && s.active)?.id ?? null,
     oldSessions: sessions
       .filter((s) => s.quiz_id === quiz.id && !s.active)
       .map((s) => s.id),
@@ -333,7 +333,7 @@ export const getQuiz = async (
   name: string;
   owner: string;
   description: string | null;
-  questions: Question[];
+  questions: (Question & { id: string })[];
   thumbnail: string | null;
   createdAt: string;
 }> => {
@@ -369,6 +369,7 @@ export const getQuiz = async (
     description: quiz[0].description,
     questions: questions.length
       ? questions.map((q) => ({
+          id: q.id,
           question: q.question,
           options: q.options,
           Correct: q.correct,

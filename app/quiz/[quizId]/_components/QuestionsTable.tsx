@@ -20,7 +20,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FullButton from '@/app/components/FullButton';
 import QuestionOptionsList from './QuestionOptionsList';
-import { Question } from '@/app/lib/types';
+import { QuizQuestion } from '@/app/lib/clients/apiClient';
 
 export default function QuestionsTable({
   questions,
@@ -28,9 +28,9 @@ export default function QuestionsTable({
   onDeleteQuestion,
   disabled,
 }: {
-  questions: Question[];
+  questions: QuizQuestion[];
   onAddQuestion: () => void;
-  onDeleteQuestion: (index: number) => void;
+  onDeleteQuestion: (questionId: string) => void;
   disabled?: boolean;
 }) {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -129,7 +129,7 @@ export default function QuestionsTable({
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteQuestion(index);
+                          onDeleteQuestion(q.id);
                         }}
                         sx={{
                           color: '#aaa',

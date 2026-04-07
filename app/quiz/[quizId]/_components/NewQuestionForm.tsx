@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
 import { Question } from '@/app/lib/types';
+import { AddQuestionsResponse } from '@/app/lib/clients/apiClient';
 
 const AnswerOption = ({
   option,
@@ -56,12 +57,12 @@ type AnswerOptions = 'A' | 'B' | 'C' | 'D';
 export const NewQuestionForm = ({
   open,
   setOpen,
-  updateQuestions,
+  addQuestions,
 }: {
   gameId: string;
   open: boolean;
   setOpen: (open: boolean) => void;
-  updateQuestions: (newQuestion: Question, formOpen: boolean) => Promise<void>;
+  addQuestions: (questions: Question[]) => Promise<AddQuestionsResponse>;
 }) => {
   const [newQuestionText, setNewQuestionText] = useState('');
   const [timeNeeded, setTimeNeeded] = useState(15);
@@ -120,7 +121,7 @@ export const NewQuestionForm = ({
       Correct: correct,
       timeNeeded,
     };
-    await updateQuestions(newQuestionObj, keepOpen);
+    await addQuestions([newQuestionObj]);
     resetForm();
     if (!keepOpen) {
       setOpen(false);

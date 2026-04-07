@@ -17,6 +17,7 @@
  * const { quizzes } = await apiClient.getAdminQuizzes(token);
  */
 import { Question, Player, PlayerAnswer } from '../types';
+import { QuestionRow } from '../database/dbTypes';
 import type { PublicQuestionReturn } from '../../api/play/[playerid]/question/route';
 
 export type ApiError = {
@@ -44,7 +45,7 @@ export type QuizListItem = {
   owner: string;
   createdAt: string;
   thumbnail: string | null;
-  active: number | null;
+  active: string | null;
   oldSessions: string[];
   numQuestions: number;
 };
@@ -65,8 +66,35 @@ export type UpdateQuizRequest = {
   name?: string;
   thumbnail?: string;
   description?: string;
-  defaultQuestionDuration?: number | null;
-  questions?: Question[];
+};
+
+export type UpdateQuizResponse = {
+  id: string;
+};
+
+export type QuizQuestion = Question & { id: string };
+
+export type GetQuestionsResponse = {
+  questions: QuestionRow[];
+};
+
+export type AddQuestionsRequest = {
+  questions: Question[];
+};
+
+export type AddQuestionsResponse = {
+  ids: string[];
+};
+
+export type UpdateQuestionRequest = {
+  question?: string;
+  options?: string[];
+  correct?: number[];
+  timeNeededMs?: number;
+};
+
+export type UpdateQuestionResponse = {
+  id: string;
 };
 
 export type SessionStatus = {
@@ -111,13 +139,12 @@ export type SubmitAnswersRequest = {
 };
 
 export type AdminGetQuizResponse = {
-  active: number | null;
-  oldSessions: number[];
+  active: string | null;
+  oldSessions: string[];
   name: string;
   owner: string;
   description: string | null;
-  defaultQuestionDuration: number | null;
-  questions: Question[];
+  questions: QuizQuestion[];
   thumbnail: string | null;
   createdAt: string;
 };
@@ -235,11 +262,11 @@ export const apiClient = {
    * Updates one or more fields of a quiz.
    * @param token - Bearer token of the authenticated admin
    * @param quizId - ID of the quiz to update
-   * @param body - Partial update: { name?, thumbnail?, questions? }
-   * @returns {} - Empty object on success
+   * @param body - Partial update: { name?, thumbnail?, description? }
+   * @returns { id } - ID of the updated quiz
    */
   updateQuiz: (token: string, quizId: string, body: UpdateQuizRequest) =>
-    requestJson<Record<string, never>>(
+    requestJson<UpdateQuizResponse>(
       `/api/admin/quiz/${encodeURIComponent(quizId)}`,
       {
         method: 'PUT',
@@ -258,6 +285,76 @@ export const apiClient = {
   deleteQuiz: (token: string, quizId: string) =>
     requestJson<Record<string, never>>(
       `/api/admin/quiz/${encodeURIComponent(quizId)}`,
+      {
+        method: 'DELETE',
+        headers: withAuthHeader(token, false),
+      }
+    ),
+
+  /**
+   * GET /api/admin/quiz/:quizId/question
+   * Returns all questions for a quiz.
+   * @param token - Bearer token of the authenticated admin
+   * @param quizId - ID of the quiz
+   * @returns { questions } - Array of QuestionRow
+   */
+  getQuestions: (token: string, quizId: string) =>
+    requestJson<GetQuestionsResponse>(
+      `/api/admin/quiz/${encodeURIComponent(quizId)}/question`,
+      {
+        method: 'GET',
+        headers: withAuthHeader(token, false),
+      }
+    ),
+
+  /**
+   * POST /api/admin/quiz/:quizId/question
+   * Adds one or more questions to a quiz.
+   * @param token - Bearer token of the authenticated admin
+   * @param quizId - ID of the quiz
+   * @param body - { questions } - Array of Question objects
+   * @returns { ids } - Array of created question IDs
+   */
+  addQuestions: (token: string, quizId: string, body: AddQuestionsRequest) =>
+    requestJson<AddQuestionsResponse>(
+      `/api/admin/quiz/${encodeURIComponent(quizId)}/question`,
+      {
+        method: 'POST',
+        headers: withAuthHeader(token, true),
+        body: JSON.stringify(body),
+      }
+    ),
+
+  /**
+   * PUT /api/admin/quiz/:quizId/question/:questionId
+   * Updates a single question.
+   * @param token - Bearer token of the authenticated admin
+   * @param quizId - ID of the quiz
+   * @param questionId - ID of the question to update
+   * @param body - Partial update: { question?, options?, correct?, timeNeededMs? }
+   * @returns { id } - ID of the updated question
+   */
+  updateQuestion: (token: string, quizId: string, questionId: string, body: UpdateQuestionRequest) =>
+    requestJson<UpdateQuestionResponse>(
+      `/api/admin/quiz/${encodeURIComponent(quizId)}/question/${encodeURIComponent(questionId)}`,
+      {
+        method: 'PUT',
+        headers: withAuthHeader(token, true),
+        body: JSON.stringify(body),
+      }
+    ),
+
+  /**
+   * DELETE /api/admin/quiz/:quizId/question/:questionId
+   * Deletes a single question.
+   * @param token - Bearer token of the authenticated admin
+   * @param quizId - ID of the quiz
+   * @param questionId - ID of the question to delete
+   * @returns {} - Empty object on success
+   */
+  deleteQuestion: (token: string, quizId: string, questionId: string) =>
+    requestJson<Record<string, never>>(
+      `/api/admin/quiz/${encodeURIComponent(quizId)}/question/${encodeURIComponent(questionId)}`,
       {
         method: 'DELETE',
         headers: withAuthHeader(token, false),

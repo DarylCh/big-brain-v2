@@ -12,7 +12,7 @@ interface Props {
   quiz: AdminGetQuizResponse | null;
   quizId: string;
   token: string;
-  onMutated: () => void;
+  onMutated: () => Promise<void>;
   onEditOpen: () => void;
 }
 
@@ -43,7 +43,7 @@ export default function QuizDetailCard({
       body: formData,
     });
     if (!res.ok) throw new Error('Thumbnail upload failed');
-    onMutated();
+    await onMutated();
   };
 
   const totalQuestions = quiz?.questions.length ?? 0;

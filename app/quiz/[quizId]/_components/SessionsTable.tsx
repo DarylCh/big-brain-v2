@@ -18,7 +18,7 @@ export default function SessionsTable({
   oldSessions,
   quizId,
 }: {
-  oldSessions: number[];
+  oldSessions: string[];
   quizId: string;
 }) {
   const router = useRouter();
