@@ -43,7 +43,7 @@ export async function POST(
       contentType: file.type,
     });
 
-    await updateQuiz(quizId, undefined, undefined, blob.url);
+    await updateQuiz(userId, quizId, blob.url);
 
     return NextResponse.json({ url: blob.url });
   } catch (error: unknown) {
