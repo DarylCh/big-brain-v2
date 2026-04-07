@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getQuiz,
-  updateQuiz,
-  removeQuiz,
   assertOwnsQuiz,
+  getQuestions,
+  addQuestions,
   getUserIdFromAuthorization,
 } from '@/app/lib/service';
 
@@ -23,10 +22,11 @@ export async function GET(
       );
     }
     const userId = getUserIdFromAuthorization(authHeader);
-    const quiz = await getQuiz(quizId, userId);
-    return NextResponse.json(quiz);
+    await assertOwnsQuiz(userId, quizId);
+    const questions = await getQuestions(quizId);
+    return NextResponse.json({ questions });
   } catch (error: unknown) {
-    console.error('Error in GET quiz:', error);
+    console.error('Error in GET /api/admin/quiz/[quizid]/question:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
@@ -40,38 +40,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ quizid: string }> }
-) {
-  try {
-    const authHeader = request.headers.get('Authorization');
-    const { quizid: quizId } = await params;
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'No authorization token' },
-        { status: 403 }
-      );
-    }
-    const userId = getUserIdFromAuthorization(authHeader);
-    // await assertOwnsQuiz(email, quizId);
-
-    const { name, thumbnail, description } = await request.json();
-    const id = await updateQuiz(userId, quizId, name, thumbnail, description);
-    return NextResponse.json({ id });
-  } catch (error: unknown) {
-    console.error('Error in PUT /api/admin/quiz/[quizid]:', error);
-    if (error instanceof Error && error.name === 'AccessError') {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    return NextResponse.json(
-      { error: 'A system error occurred' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ quizid: string }> }
 ) {
@@ -86,15 +55,25 @@ export async function DELETE(
     }
     const userId = getUserIdFromAuthorization(authHeader);
     await assertOwnsQuiz(userId, quizId);
-    await removeQuiz(quizId);
-    return NextResponse.json({});
+    const { questions } = await request.json();
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return NextResponse.json(
+        { error: 'questions must be a non-empty array' },
+        { status: 400 }
+      );
+    }
+    const ids = await addQuestions(quizId, questions);
+    return NextResponse.json({ ids }, { status: 201 });
   } catch (error: unknown) {
-    console.error('Error in DELETE /api/admin/quiz/[quizid]:', error);
+    console.error('Error in POST /api/admin/quiz/[quizid]/question:', error);
     if (error instanceof Error && error.name === 'AccessError') {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     return NextResponse.json(
-      { error: 'A system error occurred' },
+      {
+        error:
+          error instanceof Error ? error.message : 'A system error occurred',
+      },
       { status: 500 }
     );
   }

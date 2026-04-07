@@ -21,8 +21,8 @@ export async function POST(
         { status: 403 }
       );
     }
-    const email = getUserIdFromAuthorization(authHeader);
-    await assertOwnsQuiz(email, quizId);
+    const userId = getUserIdFromAuthorization(authHeader);
+    await assertOwnsQuiz(userId, quizId);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

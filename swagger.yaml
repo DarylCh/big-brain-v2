@@ -101,7 +101,7 @@ components:
         ]
       properties:
         id:
-          type: integer
+          type: string
         name:
           type: string
         owner:
@@ -112,12 +112,12 @@ components:
           type: string
           nullable: true
         active:
-          type: integer
+          type: string
           nullable: true
         oldSessions:
           type: array
           items:
-            type: integer
+            type: string
         numQuestions:
           type: integer
 
@@ -130,6 +130,9 @@ components:
           type: string
         owner:
           type: string
+        description:
+          type: string
+          nullable: true
         questions:
           type: array
           items:
@@ -138,13 +141,48 @@ components:
           type: string
           nullable: true
         active:
-          type: integer
+          type: string
           nullable: true
         oldSessions:
           type: array
           items:
-            type: integer
+            type: string
         createdAt:
+          type: string
+
+    QuestionRow:
+      type: object
+      required:
+        [
+          id,
+          quiz_id,
+          question,
+          options,
+          correct,
+          time_needed_ms,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        id:
+          type: string
+        quiz_id:
+          type: string
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        correct:
+          type: array
+          items:
+            type: integer
+        time_needed_ms:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
           type: string
 
     SessionStatus:
@@ -360,10 +398,6 @@ paths:
                   type: string
                 description:
                   type: string
-                questions:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/Question'
       responses:
         '200':
           description: Quiz updated
@@ -371,7 +405,9 @@ paths:
             application/json:
               schema:
                 type: object
-                additionalProperties: false
+                properties:
+                  id:
+                    type: string
         '403':
           description: Unauthorized
           content:
@@ -383,6 +419,138 @@ paths:
       responses:
         '200':
           description: Quiz deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz/{quizId}/question:
+    parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get all questions for a quiz
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuestionRow'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Add one or more questions to a quiz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [questions]
+              properties:
+                questions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Question'
+      responses:
+        '201':
+          description: Questions created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ids:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/quiz/{quizId}/question/{questionId}:
+    parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: questionId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a single question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                options:
+                  type: array
+                  items:
+                    type: string
+                correct:
+                  type: array
+                  items:
+                    type: integer
+                timeNeededMs:
+                  type: integer
+      responses:
+        '200':
+          description: Question updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        '403':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a single question
+      responses:
+        '200':
+          description: Question deleted
           content:
             application/json:
               schema:

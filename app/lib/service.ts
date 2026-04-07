@@ -172,9 +172,13 @@ export const login = async (
   email: string,
   password: string
 ): Promise<string> => {
-  const rows = await dbMutateSingle<{ id: string; name: string; password_hash: string }>`
-    SELECT id, name, password_hash FROM users WHERE email = ${email} AND removed_at IS NULL
-  `;
+  const rows = await dbQuery<
+    { id: string; name: string; password_hash: string },
+    string
+  >(
+    `SELECT id, name, password_hash FROM users WHERE email = $1 AND removed_at IS NULL`,
+    [email]
+  );
   if (rows.length === 0) {
     throw new InputError('Invalid username or password');
   }
@@ -198,7 +202,10 @@ export const register = async (
   password: string,
   name: string
 ): Promise<string> => {
-  const existing = await dbMutateSingle`SELECT id FROM users WHERE email = ${email}`;
+  const existing = await dbQuery<{ id: string }, string>(
+    `SELECT id FROM users WHERE email = $1`,
+    [email]
+  );
   if (existing.length > 0) {
     throw new InputError('Email address already registered');
   }
@@ -313,7 +320,7 @@ export const addQuiz = async (
   const result = await dbMutateSingle<{ id: string }>`
     INSERT INTO quizzes (name, owner_id) VALUES (${name}, ${userId}) RETURNING id
   `;
-  return result[0].id as string;
+  return result[0].id;
 };
 
 // TODO: REVIEW - Needs migration: SELECT quizzes + questions JOIN + active/inactive sessions query.
@@ -381,39 +388,88 @@ export const getQuiz = async (
 export const updateQuiz = async (
   userId: string,
   quizId: string,
-  questions?: Question[],
   name?: string,
   thumbnail?: string,
   description?: string
-): Promise<void> => {
-  await dbMutateSingle`
+): Promise<string> => {
+  const result = await dbMutateSingle<{ id: string }>`
     UPDATE quizzes SET
       name        = COALESCE(${name ?? null}, name),
       thumbnail   = COALESCE(${thumbnail ?? null}, thumbnail),
       description = COALESCE(${description ?? null}, description),
       updated_at  = NOW()
     WHERE id = ${quizId} AND owner_id = ${userId}
+    RETURNING id
   `;
-
-  if (questions !== undefined) {
-    await dbMutateSingle`DELETE FROM questions WHERE quiz_id = ${quizId}`;
-    if (questions.length > 0) {
-      for (const q of questions) {
-        await dbMutateSingle`
-          INSERT INTO questions (quiz_id, question, options, correct, time_needed_ms)
-          VALUES (${quizId}, ${q.question}, ${q.options}, ${q.Correct}, ${q.timeNeeded})
-        `;
-      }
-    }
-  }
+  return result[0].id;
 };
 
 export const removeQuiz = async (quizId: string): Promise<void> => {
-  const active = await dbMutateSingle`SELECT id FROM sessions WHERE quiz_id = ${quizId} AND active = true`;
+  const active = await dbQuery<{ id: string }, string>(
+    `SELECT id FROM sessions WHERE quiz_id = $1 AND active = true`,
+    [quizId]
+  );
   if (active.length > 0) {
     throw new InputError('Cannot delete a quiz with an active session');
   }
   await dbMutateSingle`DELETE FROM quizzes WHERE id = ${quizId}`;
+};
+
+/***************************************************************
+                       Question Functions
+***************************************************************/
+
+export const getQuestions = async (quizId: string): Promise<QuestionRow[]> => {
+  return dbQuery<QuestionRow, string>(
+    `SELECT * FROM questions WHERE quiz_id = $1 ORDER BY created_at ASC`,
+    [quizId]
+  );
+};
+
+export const addQuestions = async (
+  quizId: string,
+  questions: Question[]
+): Promise<string[]> => {
+  const ids: string[] = [];
+  for (const q of questions) {
+    const result = await dbMutateSingle<{ id: string }>`
+      INSERT INTO questions (quiz_id, question, options, correct, time_needed_ms)
+      VALUES (${quizId}, ${q.question}, ${q.options}, ${q.Correct}, ${q.timeNeeded})
+      RETURNING id
+    `;
+    ids.push(result[0].id);
+  }
+  return ids;
+};
+
+export const updateQuestion = async (
+  questionId: string,
+  quizId: string,
+  question?: string,
+  options?: string[],
+  correct?: number[],
+  timeNeededMs?: number
+): Promise<string> => {
+  const result = await dbMutateSingle<{ id: string }>`
+    UPDATE questions SET
+      question      = COALESCE(${question ?? null}, question),
+      options       = COALESCE(${options ?? null}, options),
+      correct       = COALESCE(${correct ?? null}, correct),
+      time_needed_ms = COALESCE(${timeNeededMs ?? null}, time_needed_ms),
+      updated_at    = NOW()
+    WHERE id = ${questionId} AND quiz_id = ${quizId}
+    RETURNING id
+  `;
+  return result[0].id;
+};
+
+export const removeQuestion = async (
+  questionId: string,
+  quizId: string
+): Promise<void> => {
+  await dbMutateSingle`
+    DELETE FROM questions WHERE id = ${questionId} AND quiz_id = ${quizId}
+  `;
 };
 
 // TODO: REVIEW - Needs migration: check question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
@@ -471,7 +527,7 @@ export const endQuiz = async (quizId: string): Promise<void> => {
 /***************************************************************
                        Session Functions
  * TODO: REVIEW - quizHasActiveSession, getActiveSessionFromQuizIdThrow,
- * getActiveSessionIdFromQuizId, getInactiveSessionsIdFromQuizId,
+ * getActiveSessionIdFromQuizId,
  * getActiveSessionFromSessionId, sessionIdFromPlayerId, newSessionPayload,
  * newPlayerPayload — all need rewriting as DB queries or can be removed.
  ***************************************************************/
@@ -503,11 +559,6 @@ const getActiveSessionIdFromQuizId = (quizId: string) => {
   }
   return null;
 };
-
-const getInactiveSessionsIdFromQuizId = (quizId: string) =>
-  Object.keys(sessions)
-    .filter((sid) => sessions[sid].quizId === quizId && !sessions[sid].active)
-    .map((s) => parseInt(s, 10));
 
 const getActiveSessionFromSessionId = (sessionId: string) => {
   if (sessionId in sessions) {

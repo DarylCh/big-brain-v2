@@ -17,9 +17,9 @@ export async function POST(
         { status: 403 }
       );
     }
-    const email = getUserIdFromAuthorization(authHeader);
+    const userId = getUserIdFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    await assertOwnsQuiz(email, quizId);
+    await assertOwnsQuiz(userId, quizId);
     await endQuiz(quizId);
     return NextResponse.json({});
   } catch (error: unknown) {
