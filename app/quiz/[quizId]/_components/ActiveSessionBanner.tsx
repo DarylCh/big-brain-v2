@@ -33,6 +33,7 @@ export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
   const fetchStatus = async () => {
     if (!quiz?.active) return;
     const res = await apiClient.getSessionStatus(token, quiz.active.toString());
+    console.log('Fetched session status: ', res);
     setSessionStatus(res.results);
   };
 
@@ -47,6 +48,7 @@ export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
     const active = quiz.active;
     void (async () => {
       const res = await apiClient.getSessionStatus(token, active.toString());
+      console.log('Fetched session status: ', res);
       setSessionStatus(res.results);
     })();
   }, [quiz?.active, token]);
@@ -63,11 +65,13 @@ export default function ActiveSessionBanner({ quiz, token, onAdvance }: Props) {
 
   if (!quiz?.active) return null;
 
-  const statusText = sessionStatus
-    ? sessionStatus.position === -1
-      ? 'Ready to begin'
-      : `Question ${sessionStatus.position + 1} of ${sessionStatus.questions.length}`
-    : 'Loading…';
+  console.log('Session status: ', sessionStatus);
+  const statusText =
+    sessionStatus !== null
+      ? sessionStatus.position === -1
+        ? 'Ready to begin'
+        : `Question ${sessionStatus.position + 1} of ${sessionStatus.questions.length}`
+      : 'Loading…';
 
   return (
     <>

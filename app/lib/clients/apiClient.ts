@@ -116,6 +116,7 @@ export type SessionResultsResponse = {
 
 export type JoinSessionRequest = {
   name: string;
+  userId?: string;
 };
 
 export type JoinSessionResponse = {

@@ -55,6 +55,7 @@ CREATE TABLE session_players (
   joined_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   -- a user can only join a session once
   CONSTRAINT session_players_user_session_unique UNIQUE (session_id, user_id)
+  CONSTRAINT session_players_session_name_unique UNIQUE (session_id, name)
 );
 
 CREATE TABLE results (

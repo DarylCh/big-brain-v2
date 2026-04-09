@@ -13,7 +13,12 @@ import {
 import { Admins, Question, Quizzes, Session, Sessions } from './types';
 import { PublicQuestionReturn } from '../api/play/[playerid]/question/route';
 import { QuizListItem } from './clients/apiClient';
-import { QuestionRow, QuizRow, SessionRow } from './database/dbTypes';
+import {
+  QuestionRow,
+  QuizRow,
+  SessionPlayerRow,
+  SessionRow,
+} from './database/dbTypes';
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET is not defined in environment variables');
@@ -461,7 +466,7 @@ export const startNewQuizSession = async (quizId: string, userId: string) => {
   }
 
   const mutation = await dbMutateSingle<{ id: string }>`
-    INSERT INTO sessions (quiz_id, user_id, active)
+    INSERT INTO sessions (quiz_id, admin_id, active)
     VALUES (${quizId}, ${userId}, true)
     RETURNING id
   `;
@@ -472,38 +477,54 @@ export const startNewQuizSession = async (quizId: string, userId: string) => {
 // TODO: REVIEW - Needs migration: player count via SELECT COUNT(*) FROM session_players;
 // question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
 // UPDATE sessions SET position, iso_time_last_question_started.
-export const advanceQuiz = async (quizId: string) =>
-  await mutateLock(async () => {
-    const sessionObject = getActiveSessionFromQuizIdThrow(quizId);
-    if (!sessionObject) {
-      throw new InputError('Quiz has no active session');
-    }
-    const { session } = sessionObject;
-    if (!session.active) {
-      throw new InputError('Cannot advance a quiz that is not active');
-    }
-    if (Object.keys(session.players).length === 0) {
-      throw new InputError('Cannot advance a session with no players');
-    } else {
-      const totalQuestions = session.questions.length;
-      session.position += 1;
-      session.isoTimeLastQuestionStarted = new Date().toISOString();
-      if (session.position >= totalQuestions) {
-        return -2;
-      }
-      return session.position;
-    }
-  });
+export const advanceQuiz = async (quizId: string, userId: string) => {
+  const quizSession = await dbQuery<SessionRow, string>(
+    `SELECT * FROM sessions WHERE quiz_id = $1 AND active = true`,
+    [quizId]
+  );
 
-export const endQuiz = async (quizId: string): Promise<void> => {
+  if (quizSession.length === 0) {
+    throw new InputError('Quiz has no active session');
+  }
+  const session = quizSession[0];
+
+  if (session.admin_id !== userId) {
+    throw new InputError('User does not own the quiz');
+  }
+
+  const sessionPlayers = await dbQuery<SessionPlayerRow, string>(
+    `SELECT * FROM session_players WHERE session_id = $1`,
+    [session.id]
+  );
+
+  if (sessionPlayers.length === 0) {
+    throw new InputError('Cannot advance a session with no players');
+  }
+
+  const stage = session.position + 1;
+  const result = await dbMutateSingle<{
+    id: string;
+    position: number;
+  }>`UPDATE sessions SET position = ${stage} WHERE id = ${session.id} RETURNING id, position`;
+  return result[0].position;
+};
+
+export const endQuiz = async (
+  quizId: string,
+  userId: string
+): Promise<string> => {
   const result = await dbMutateSingle<{ id: string }>`
     UPDATE sessions SET active = false, updated_at = NOW()
-    WHERE quiz_id = ${quizId} AND active = true
+    WHERE quiz_id = ${quizId} AND admin_id = ${userId} AND active = true
     RETURNING id
   `;
+
   if (result.length === 0) {
     throw new InputError('Quiz has no active session');
   }
+
+  console.log('Ended session with ID:', result[0].id);
+  return result[0].id;
 };
 
 /***************************************************************
@@ -594,12 +615,10 @@ const newPlayerPayload = (name: string, numQuestions: number) => ({
   }),
 });
 
-// TODO: REVIEW - Needs migration: JOIN sessions + questions (separate table) + session_players.
-// Position -1 convention needs to be handled (DB defaults to 0; define not-started sentinel).
 export const sessionStatus = async (sessionId: string, userId: string) => {
   const session = await getSession(sessionId);
 
-  if (session.user_id !== userId) {
+  if (session.admin_id !== userId) {
     throw new AccessError('You do not have access to this session');
   }
 
@@ -612,18 +631,14 @@ export const sessionStatus = async (sessionId: string, userId: string) => {
     answerAvailable: isAnswerAvailable(session),
     isoTimeLastQuestionStarted: session.iso_time_last_question_started,
     position: session.position,
-    // TODO: fix
-    questions: [],
-    // TODO: fix
-    players: [],
   };
 };
 
-// TODO: REVIEW - Needs migration: SELECT sessions WHERE session_players.id = sessionPlayerId,
-// then verify quiz ownership via quizzes JOIN users.
-export const assertOwnsSession = async (email: string, sessionId: string) => {
-  await assertOwnsQuiz(email, sessions[sessionId].quizId);
-};
+// // TODO: REVIEW - Needs migration: SELECT sessions WHERE session_players.id = sessionPlayerId,
+// // then verify quiz ownership via quizzes JOIN users.
+// export const assertOwnsSession = async (email: string, sessionId: string) => {
+//   // await assertOwnsQuiz(email, sessions[sessionId].quizId);
+// };
 
 // TODO: REVIEW - Needs migration: SELECT results JOIN session_players WHERE session_id.
 // Completely restructured from players[].answers to results table rows.
@@ -639,21 +654,23 @@ export const sessionResults = (sessionId: string) => {
 // TODO: REVIEW - Needs migration: INSERT INTO session_players (session_id, user_id, name).
 // user_id should come from JWT if logged in, null for guests.
 // Returns session_players.id (UUID) as the new playerId.
-export const playerJoin = async (name: string, sessionId: string) =>
-  await mutateLock(() => {
-    if (name === undefined) {
-      throw new InputError('Name must be supplied');
-    } else {
-      const session = getActiveSessionFromSessionId(sessionId);
-      if (session.position > 0) {
-        throw new InputError('Session has already begun');
-      } else {
-        const id = newPlayerId();
-        session.players[id] = newPlayerPayload(name, session.questions.length);
-        return parseInt(id, 10);
-      }
-    }
-  });
+export const playerJoin = async (
+  name: string,
+  sessionId: string,
+  userId?: string
+) => {
+  if (name.trim() === '') {
+    throw new InputError('Name cannot be empty');
+  }
+
+  const playerId = await dbMutateSingle<{ id: string }>`
+    INSERT INTO session_players (session_id, name, user_id)
+    VALUES (${sessionId}, ${name.toLocaleLowerCase()}, ${userId || null})
+    RETURNING id
+   `;
+
+  return playerId[0].id;
+};
 
 // TODO: REVIEW - Needs migration: SELECT iso_time_last_question_started FROM sessions
 // via JOIN session_players WHERE session_players.id = playerId.

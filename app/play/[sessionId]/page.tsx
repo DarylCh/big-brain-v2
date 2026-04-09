@@ -58,26 +58,6 @@ export default function SessionPage({
     []
   );
 
-  // useEffect to control time and answer submission
-  useEffect(() => {
-    let timeOut: NodeJS.Timeout | null = null;
-    if (gameStarted && timeUpRef.current) {
-      const remainingTimeMs = timeUpRef.current.getTime() - Date.now();
-      timeOut = setTimeout(
-        () => {
-          void retrieveAndDisplayCorrectAnswer(playerId);
-        },
-        Math.max(0, remainingTimeMs)
-      );
-    }
-
-    return () => {
-      if (timeOut) {
-        clearTimeout(timeOut);
-      }
-    };
-  }, [gameStarted, currentQuestion, playerId, retrieveAndDisplayCorrectAnswer]);
-
   const fetchNextQuestion = useCallback(async () => {
     const res = await retrieveCurrentQuestion(playerId);
     if (
@@ -137,10 +117,15 @@ export default function SessionPage({
       try {
         setLoadingStatus(true);
         const response = await hasGameStarted(playerId);
-        setGameStarted(response.started);
 
-        if (response.started && interval) {
-          clearInterval(interval);
+        if (response.started) {
+          await fetchNextQuestion();
+          setGameStarted(response.started);
+
+          // halt session polling
+          if (interval) {
+            clearInterval(interval);
+          }
         }
       } catch (error) {
         console.error('Error retrieving game status: ', error);
@@ -150,14 +135,34 @@ export default function SessionPage({
       }
     };
 
-    if (sessionId !== '') {
+    if (sessionId.trim() !== '') {
       interval = setInterval(() => {
         void retrieveGameStatus();
       }, 500);
     }
 
     return () => clearInterval(interval);
-  }, [sessionId, playerId, hasGameStarted]);
+  }, [sessionId, playerId, hasGameStarted, fetchNextQuestion]);
+
+  // useEffect to control time and answer submission
+  useEffect(() => {
+    let timeOut: NodeJS.Timeout | null = null;
+    if (gameStarted && timeUpRef.current) {
+      const remainingTimeMs = timeUpRef.current.getTime() - Date.now();
+      timeOut = setTimeout(
+        () => {
+          void retrieveAndDisplayCorrectAnswer(playerId);
+        },
+        Math.max(0, remainingTimeMs)
+      );
+    }
+
+    return () => {
+      if (timeOut) {
+        clearTimeout(timeOut);
+      }
+    };
+  }, [gameStarted, currentQuestion, playerId, retrieveAndDisplayCorrectAnswer]);
 
   useEffect(() => {
     const retrieveQuestion = async () => {

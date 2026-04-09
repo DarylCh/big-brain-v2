@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   advanceQuiz,
-  assertOwnsQuiz,
   endQuiz,
   getUserIdFromAuthorization,
 } from '@/app/lib/service';
@@ -20,13 +19,15 @@ export async function POST(
     }
     const userId = getUserIdFromAuthorization(authHeader);
     const { quizid: quizId } = await params;
-    await assertOwnsQuiz(userId, quizId);
-    const stage = await advanceQuiz(quizId);
+
+    // TODO: use the quiz id to find the active session, make sure the user owns the quiz, and then advance the session's position. If advancing the quiz results in completion, end the quiz.
+    // await assertOwnsQuiz(userId, quizId)
+    const stage = await advanceQuiz(quizId, userId);
     if (stage === -2) {
       console.log(
         `Quiz ${quizId} has completed. Ending quiz and redirecting to results.`
       );
-      await endQuiz(quizId);
+      await endQuiz(quizId, userId);
     }
     return NextResponse.json({ stage });
   } catch (error: unknown) {

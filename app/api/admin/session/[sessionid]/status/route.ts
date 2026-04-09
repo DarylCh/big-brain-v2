@@ -15,7 +15,8 @@ export async function GET(
     }
     const userId = getUserIdFromAuthorization(authHeader);
     const { sessionid: sessionId } = await params;
-    const results = sessionStatus(sessionId, userId);
+    const results = await sessionStatus(sessionId, userId);
+
     return NextResponse.json({ results });
   } catch (error: unknown) {
     console.error(

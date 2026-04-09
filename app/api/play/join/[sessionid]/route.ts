@@ -6,11 +6,11 @@ export async function POST(
   { params }: { params: Promise<{ sessionid: string }> }
 ) {
   try {
-    const { name } = await request.json();
+    const { name, userId } = await request.json();
     const { sessionid } = await params;
     console.log(`Player ${name} is attempting to join session ${sessionid}`);
 
-    const playerId = await playerJoin(name, sessionid);
+    const playerId = await playerJoin(name, sessionid, userId);
     console.log(
       `Player ${name} successfully joined session ${sessionid} with ID ${playerId}`
     );
