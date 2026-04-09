@@ -23,6 +23,7 @@ export type QuizRow = {
 export type QuestionRow = {
   id: string;
   quiz_id: string;
+  position: number;
   question: string;
   options: string[];
   correct: number[];

@@ -25,6 +25,7 @@ CREATE TABLE quizzes (
 CREATE TABLE questions (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   quiz_id        UUID        NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+  position       INTEGER     NOT NULL,
   question       TEXT        NOT NULL,
   options        TEXT[]      NOT NULL,
   correct        INTEGER[]   NOT NULL,

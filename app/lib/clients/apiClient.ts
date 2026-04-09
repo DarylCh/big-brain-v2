@@ -17,7 +17,6 @@
  * const { quizzes } = await apiClient.getAdminQuizzes(token);
  */
 import { Question, Player, PlayerAnswer } from '../types';
-import { QuestionRow } from '../database/dbTypes';
 import type { PublicQuestionReturn } from '../../api/play/[playerid]/question/route';
 
 export type ApiError = {
@@ -72,14 +71,14 @@ export type UpdateQuizResponse = {
   id: string;
 };
 
-export type QuizQuestion = Question & { id: string };
+export type QuizQuestion = Question & { id: string; position: number };
 
 export type GetQuestionsResponse = {
-  questions: QuestionRow[];
+  questions: QuizQuestion[];
 };
 
 export type AddQuestionsRequest = {
-  questions: Question[];
+  questions: QuizQuestion[];
 };
 
 export type AddQuestionsResponse = {
@@ -91,6 +90,7 @@ export type UpdateQuestionRequest = {
   options?: string[];
   correct?: number[];
   timeNeededMs?: number;
+  position?: number;
 };
 
 export type UpdateQuestionResponse = {
@@ -102,7 +102,7 @@ export type SessionStatus = {
   answerAvailable: boolean;
   isoTimeLastQuestionStarted: string | null;
   position: number;
-  questions: Question[];
+  questions: QuizQuestion[];
   players: string[];
 };
 

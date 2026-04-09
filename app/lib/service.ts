@@ -478,34 +478,48 @@ export const startNewQuizSession = async (quizId: string, userId: string) => {
 // question count via SELECT COUNT(*) FROM questions WHERE quiz_id;
 // UPDATE sessions SET position, iso_time_last_question_started.
 export const advanceQuiz = async (quizId: string, userId: string) => {
-  const quizSession = await dbQuery<SessionRow, string>(
-    `SELECT * FROM sessions WHERE quiz_id = $1 AND active = true`,
-    [quizId]
+  const activeSessionQuery = await dbQuery<
+    SessionRow & { question_count: number; player_count: number },
+    string
+  >(
+    `SELECT s.*, count(DISTINCT qu.id) as question_count, count(DISTINCT sp.id) as player_count 
+    FROM sessions s
+    JOIN session_players sp ON sp.session_id = s.id
+    JOIN quizzes q ON s.quiz_id = q.id
+    JOIN questions qu on qu.quiz_id = q.id
+    WHERE s.quiz_id = $1 AND s.admin_id = $2 AND s.active = true
+    GROUP BY s.id`,
+    [quizId, userId]
   );
 
-  if (quizSession.length === 0) {
-    throw new InputError('Quiz has no active session');
+  if (activeSessionQuery.length === 0) {
+    throw new InputError('Could not find active session for this quiz');
   }
-  const session = quizSession[0];
+  const session = activeSessionQuery[0];
 
   if (session.admin_id !== userId) {
     throw new InputError('User does not own the quiz');
   }
 
-  const sessionPlayers = await dbQuery<SessionPlayerRow, string>(
-    `SELECT * FROM session_players WHERE session_id = $1`,
-    [session.id]
-  );
-
-  if (sessionPlayers.length === 0) {
+  if (session.player_count === 0) {
     throw new InputError('Cannot advance a session with no players');
   }
 
+  if (session.position === session.question_count) {
+    console.log(
+      `Quiz ${quizId} has already reached final question. Ending quiz and redirecting to results.`
+    );
+    await endQuiz(quizId, userId);
+    return -2; // signal quiz completion to caller
+  }
+
   const stage = session.position + 1;
+  const currentTime = new Date().toISOString();
   const result = await dbMutateSingle<{
     id: string;
     position: number;
-  }>`UPDATE sessions SET position = ${stage} WHERE id = ${session.id} RETURNING id, position`;
+  }>`UPDATE sessions SET position = ${stage}, iso_time_last_question_started = ${currentTime} WHERE id = ${session.id} RETURNING id, position`;
+
   return result[0].position;
 };
 
@@ -547,34 +561,6 @@ export const getSession = async (sessionId: string) => {
   return query[0];
 };
 
-const quizHasActiveSession = (quizId: string) =>
-  Object.keys(sessions).filter(
-    (s) => sessions[s].quizId === quizId && sessions[s].active
-  ).length > 0;
-
-const getActiveSessionFromQuizIdThrow = (
-  quizId: string
-): { id: string; session: Session } | null => {
-  if (!quizHasActiveSession(quizId)) {
-    throw new InputError('Quiz has no active session');
-  }
-  const sessionId = getActiveSessionIdFromQuizId(quizId);
-  if (sessionId !== null) {
-    return { id: sessionId.toString(), session: sessions[sessionId] };
-  }
-  return null;
-};
-
-const getActiveSessionIdFromQuizId = (quizId: string) => {
-  const activeSessions = Object.keys(sessions).filter(
-    (s) => sessions[s].quizId === quizId && sessions[s].active
-  );
-  if (activeSessions.length === 1) {
-    return parseInt(activeSessions[0], 10);
-  }
-  return null;
-};
-
 const getActiveSessionFromSessionId = (sessionId: string) => {
   if (sessionId in sessions) {
     if (sessions[sessionId].active) {
@@ -595,25 +581,6 @@ const sessionIdFromPlayerId = (playerId: string) => {
   }
   throw new InputError('Player ID does not refer to valid player id');
 };
-
-// const newSessionPayload = (quizId: string) => ({
-//   quizId,
-//   position: -1,
-//   isoTimeLastQuestionStarted: null,
-//   players: {},
-//   questions: copy(quizzes[quizId].questions),
-//   active: true,
-// });
-
-const newPlayerPayload = (name: string, numQuestions: number) => ({
-  name: name,
-  answers: Array(numQuestions).fill({
-    questionStartedAt: null,
-    answeredAt: null,
-    answerIds: [],
-    correct: false,
-  }),
-});
 
 export const sessionStatus = async (sessionId: string, userId: string) => {
   const session = await getSession(sessionId);
@@ -685,23 +652,33 @@ export const hasStarted = (playerId: string) => {
   }
 };
 
-// TODO: REVIEW - Needs migration: look up session via session_players.id, then
-// SELECT question at sessions.position from questions WHERE quiz_id ORDER BY created_at.
-export const getQuestion = (playerId: string): Promise<PublicQuestionReturn> =>
-  Promise.resolve().then(() => {
-    const session = getActiveSessionFromSessionId(
-      sessionIdFromPlayerId(playerId)
-    );
-    if (session.position === -1) {
-      throw new InputError('Session has not started yet');
-    } else {
-      return {
-        ...quizQuestionPublicReturn(session.questions[session.position]),
-        isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
-        lastQuestion: session.position === session.questions.length - 1,
-      };
-    }
-  });
+// get current question
+export const getQuestion = (
+  playerId: string
+): Promise<PublicQuestionReturn> => {
+  const result = dbQuery<QuestionRow, string>(
+    `SELECT * from questions q
+    JOIN sessions s ON s.quiz_id = q.quiz_id
+    JOIN session_players sp ON sp.session_id = s.id
+    WHERE sp.id = $1 AND s.active = true AND s.position >= 0
+    ORDER BY q.updated_at ASC`,
+    [playerId]
+  );
+};
+// Promise.resolve().then(() => {
+//   const session = getActiveSessionFromSessionId(
+//     sessionIdFromPlayerId(playerId)
+//   );
+//   if (session.position === -1) {
+//     throw new InputError('Session has not started yet');
+//   } else {
+//     return {
+//       ...quizQuestionPublicReturn(session.questions[session.position]),
+//       isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
+//       lastQuestion: session.position === session.questions.length - 1,
+//     };
+//   }
+// });
 
 // TODO: REVIEW - Needs migration: same session/question lookup as getQuestion;
 // return correct[] from questions table for current position.
